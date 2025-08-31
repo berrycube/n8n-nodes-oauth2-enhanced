@@ -22,6 +22,9 @@ export default defineConfig({
     },
     testTimeout: 10000,
   },
+  esbuild: {
+    target: 'node14'
+  },
   resolve: {
     alias: {
       '@': new URL('./src', import.meta.url).pathname,
