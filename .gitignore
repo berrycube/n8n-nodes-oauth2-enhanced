@@ -14,7 +14,7 @@ build/
 # Testing
 coverage/
 *.lcov
-.nyc_output
+.nyc_output/
 
 # IDE
 .vscode/
@@ -40,6 +40,7 @@ temp/
 
 # Package manager
 .pnpm-debug.log*
+pnpm-lock.yaml
 
 # TypeScript cache
 *.tsbuildinfo
