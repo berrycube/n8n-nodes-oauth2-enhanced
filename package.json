@@ -1,0 +1,49 @@
+{
+  "name": "@berrycube/n8n-nodes-oauth2-enhanced",
+  "version": "0.1.0",
+  "description": "Enhanced OAuth2 credential + Smart HTTP for n8n",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist/**/*"],
+  "keywords": ["n8n-community-node-package", "n8n", "oauth2", "http"],
+  "engines": {
+    "node": ">=20.15"
+  },
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": ["dist/credentials/OAuth2Enhanced.credentials.js"],
+    "nodes": ["dist/nodes/SmartHttp/SmartHttp.node.js"]
+  },
+  "scripts": {
+    "build": "tsc && npm run copy-files",
+    "copy-files": "copyfiles -u 1 \"nodes/**/*.{png,svg}\" \"credentials/**/*.{png,svg}\" dist/",
+    "dev": "tsc --watch",
+    "lint": "eslint nodes credentials --ext .ts",
+    "lintfix": "eslint nodes credentials --ext .ts --fix",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build && npm run lint"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.19",
+    "copyfiles": "^2.4.1",
+    "n8n-workflow": "^1.34.0",
+    "typescript": "^5.3.3",
+    "eslint": "^8.57.0",
+    "vitest": "^1.3.1"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/berrycube/n8n-nodes-oauth2-enhanced.git"
+  },
+  "bugs": {
+    "url": "https://github.com/berrycube/n8n-nodes-oauth2-enhanced/issues"
+  },
+  "homepage": "https://github.com/berrycube/n8n-nodes-oauth2-enhanced#readme"
+}
