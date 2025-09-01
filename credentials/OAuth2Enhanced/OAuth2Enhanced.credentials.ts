@@ -11,43 +11,6 @@ export class OAuth2Enhanced implements ICredentialType {
   
   properties: INodeProperties[] = [
     {
-      displayName: 'Client ID',
-      name: 'clientId',
-      type: 'string',
-      default: '',
-      required: true,
-    },
-    {
-      displayName: 'Client Secret',
-      name: 'clientSecret',
-      type: 'string',
-      typeOptions: {
-        password: true,
-      },
-      default: '',
-      required: true,
-    },
-    {
-      displayName: 'Auth URL',
-      name: 'authUrl',
-      type: 'string',
-      default: '',
-      required: true,
-    },
-    {
-      displayName: 'Access Token URL',
-      name: 'accessTokenUrl',
-      type: 'string',
-      default: '',
-      required: true,
-    },
-    {
-      displayName: 'Scope',
-      name: 'scope',
-      type: 'string',
-      default: '',
-    },
-    {
       displayName: 'Auto Refresh',
       name: 'autoRefresh',
       type: 'boolean',
@@ -60,24 +23,35 @@ export class OAuth2Enhanced implements ICredentialType {
       type: 'number',
       default: 300,
       description: 'Refresh token this many seconds before expiration',
+      displayOptions: {
+        show: {
+          autoRefresh: [true],
+        },
+      },
     },
     {
-      displayName: 'Access Token',
-      name: 'accessToken',
-      type: 'string',
-      typeOptions: {
-        password: true,
+      displayName: 'Retry Attempts',
+      name: 'retryAttempts',
+      type: 'number',
+      default: 3,
+      description: 'Maximum number of retry attempts when authentication fails',
+      displayOptions: {
+        show: {
+          autoRefresh: [true],
+        },
       },
-      default: '',
     },
     {
-      displayName: 'Refresh Token',
-      name: 'refreshToken',
-      type: 'string',
-      typeOptions: {
-        password: true,
+      displayName: 'Retry Delay (ms)',
+      name: 'retryDelay',
+      type: 'number',
+      default: 1000,
+      description: 'Delay between retry attempts in milliseconds',
+      displayOptions: {
+        show: {
+          autoRefresh: [true],
+        },
       },
-      default: '',
     },
   ];
 }

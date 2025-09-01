@@ -13,28 +13,40 @@ describe('OAuth2Enhanced Credentials', () => {
       expect(credentials.displayName).toBe('OAuth2 API (Enhanced)');
     });
 
-    it('should include required OAuth2 properties', () => {
+    it('should extend oAuth2Api credentials', () => {
       const credentials = new OAuth2Enhanced();
-      const properties = credentials.properties;
+      expect(credentials.extends).toEqual(['oAuth2Api']);
+    });
+
+    it('should only include enhancement-specific properties', () => {
+      const credentials = new OAuth2Enhanced();
+      const propertyNames = credentials.properties.map(p => p.name);
       
-      // 验证必需的OAuth2字段
-      const propertyNames = properties.map(p => p.name);
-      expect(propertyNames).toContain('clientId');
-      expect(propertyNames).toContain('clientSecret');
-      expect(propertyNames).toContain('authUrl');
-      expect(propertyNames).toContain('accessTokenUrl');
-      expect(propertyNames).toContain('scope');
+      // 应该只包含增强功能字段，基础OAuth2字段由extends继承
+      expect(propertyNames).toEqual([
+        'autoRefresh',
+        'refreshBuffer', 
+        'retryAttempts',
+        'retryDelay'
+      ]);
     });
   });
 
   describe('增强功能', () => {
     it('should include token refresh settings', () => {
       const credentials = new OAuth2Enhanced();
-      const properties = credentials.properties;
-      const propertyNames = properties.map(p => p.name);
+      const propertyNames = credentials.properties.map(p => p.name);
       
       expect(propertyNames).toContain('autoRefresh');
       expect(propertyNames).toContain('refreshBuffer');
+    });
+
+    it('should include retry mechanism settings', () => {
+      const credentials = new OAuth2Enhanced();
+      const propertyNames = credentials.properties.map(p => p.name);
+      
+      expect(propertyNames).toContain('retryAttempts');
+      expect(propertyNames).toContain('retryDelay');
     });
 
     it('should have auto refresh enabled by default', () => {
@@ -48,26 +60,47 @@ describe('OAuth2Enhanced Credentials', () => {
       const refreshBufferProp = credentials.properties.find(p => p.name === 'refreshBuffer');
       expect(refreshBufferProp?.default).toBe(300); // 5 minutes buffer
     });
-  });
 
-  describe('安全性', () => {
-    it('should mark sensitive fields as secret', () => {
+    it('should have reasonable retry defaults', () => {
       const credentials = new OAuth2Enhanced();
-      const clientSecretProp = credentials.properties.find(p => p.name === 'clientSecret');
-      expect(clientSecretProp?.typeOptions?.password).toBe(true);
+      
+      const retryAttemptsProp = credentials.properties.find(p => p.name === 'retryAttempts');
+      expect(retryAttemptsProp?.default).toBe(3);
+      
+      const retryDelayProp = credentials.properties.find(p => p.name === 'retryDelay');
+      expect(retryDelayProp?.default).toBe(1000); // 1 second
     });
 
-    it('should have secure token storage', () => {
+    it('should conditionally show retry settings when autoRefresh is enabled', () => {
+      const credentials = new OAuth2Enhanced();
+      
+      const conditionalFields = ['refreshBuffer', 'retryAttempts', 'retryDelay'];
+      
+      conditionalFields.forEach(fieldName => {
+        const field = credentials.properties.find(p => p.name === fieldName);
+        expect(field?.displayOptions?.show?.autoRefresh).toEqual([true]);
+      });
+    });
+  });
+
+  describe('安全性和继承', () => {
+    it('should extend from oAuth2Api for base security', () => {
+      const credentials = new OAuth2Enhanced();
+      expect(credentials.extends).toEqual(['oAuth2Api']);
+    });
+
+    it('should have proper documentation reference', () => {
+      const credentials = new OAuth2Enhanced();
+      expect(credentials.documentationUrl).toBe('https://docs.n8n.io/integrations/builtin/credentials/oauth2/');
+    });
+
+    it('enhancement fields should not contain sensitive data', () => {
       const credentials = new OAuth2Enhanced();
       const properties = credentials.properties;
       
-      // 查找存储敏感token的字段
-      const tokenFields = ['accessToken', 'refreshToken'];
-      tokenFields.forEach(fieldName => {
-        const field = properties.find(p => p.name === fieldName);
-        if (field) {
-          expect(field.typeOptions?.password).toBe(true);
-        }
+      // 增强字段都是配置选项，不应该包含敏感数据
+      properties.forEach(prop => {
+        expect(prop.typeOptions?.password).toBeFalsy();
       });
     });
   });
