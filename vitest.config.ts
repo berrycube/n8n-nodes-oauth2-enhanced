@@ -6,6 +6,7 @@ export default defineConfig({
     environment: 'node',
     include: ['**/*.{test,spec}.{js,ts}'],
     exclude: ['node_modules', 'dist'],
+    setupFiles: ['./vitest.setup.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -23,11 +24,12 @@ export default defineConfig({
     testTimeout: 10000,
   },
   esbuild: {
-    target: 'node14'
+    target: 'node20'
   },
   resolve: {
-    alias: {
-      '@': new URL('./src', import.meta.url).pathname,
-    },
+    conditions: ['node', 'require']
   },
+  ssr: {
+    external: ['n8n-workflow']
+  }
 });

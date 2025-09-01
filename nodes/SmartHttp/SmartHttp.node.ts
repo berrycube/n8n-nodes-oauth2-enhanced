@@ -5,7 +5,6 @@ import {
   INodeTypeDescription,
   IHttpRequestMethods,
   NodeOperationError,
-  NodeConnectionType,
 } from 'n8n-workflow';
 
 export class SmartHttp implements INodeType {
@@ -18,8 +17,8 @@ export class SmartHttp implements INodeType {
     defaults: {
       name: 'Smart HTTP',
     },
-    inputs: [{ type: NodeConnectionType.Main }],
-    outputs: [{ type: NodeConnectionType.Main }],
+    inputs: ['main'],
+    outputs: ['main'],
     credentials: [
       {
         name: 'oAuth2ApiEnhanced',
