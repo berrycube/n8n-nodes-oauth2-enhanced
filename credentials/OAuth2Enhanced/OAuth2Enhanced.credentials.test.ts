@@ -83,6 +83,50 @@ describe('OAuth2Enhanced Credentials', () => {
     });
   });
 
+  describe('参数验证和边界条件', () => {
+    it('should have reasonable value ranges for retry attempts', () => {
+      const credentials = new OAuth2Enhanced();
+      const retryAttemptsProp = credentials.properties.find(p => p.name === 'retryAttempts');
+      
+      expect(retryAttemptsProp?.default).toBe(3);
+      expect(retryAttemptsProp?.type).toBe('number');
+      // The validation will be done in the node implementation
+    });
+
+    it('should have reasonable value ranges for retry delay', () => {
+      const credentials = new OAuth2Enhanced();
+      const retryDelayProp = credentials.properties.find(p => p.name === 'retryDelay');
+      
+      expect(retryDelayProp?.default).toBe(1000);
+      expect(retryDelayProp?.type).toBe('number');
+      // The validation will be done in the node implementation
+    });
+
+    it('should have reasonable value ranges for refresh buffer', () => {
+      const credentials = new OAuth2Enhanced();
+      const refreshBufferProp = credentials.properties.find(p => p.name === 'refreshBuffer');
+      
+      expect(refreshBufferProp?.default).toBe(300); // 5 minutes
+      expect(refreshBufferProp?.type).toBe('number');
+    });
+
+    it('should have appropriate field descriptions for user guidance', () => {
+      const credentials = new OAuth2Enhanced();
+      
+      const descriptionFields = [
+        { name: 'autoRefresh', expectedText: 'Automatically refresh' },
+        { name: 'refreshBuffer', expectedText: 'seconds before expiration' },
+        { name: 'retryAttempts', expectedText: 'retry attempts' },
+        { name: 'retryDelay', expectedText: 'milliseconds' }
+      ];
+
+      descriptionFields.forEach(({ name, expectedText }) => {
+        const field = credentials.properties.find(p => p.name === name);
+        expect(field?.description).toContain(expectedText);
+      });
+    });
+  });
+
   describe('安全性和继承', () => {
     it('should extend from oAuth2Api for base security', () => {
       const credentials = new OAuth2Enhanced();

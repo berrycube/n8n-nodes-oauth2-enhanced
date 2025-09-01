@@ -48,25 +48,6 @@ export class SmartHttp implements INodeType {
         required: true,
         description: 'The URL to make the request to',
       },
-      {
-        displayName: 'Auto Retry',
-        name: 'autoRetry',
-        type: 'boolean',
-        default: true,
-        description: 'Automatically retry on authentication failures',
-      },
-      {
-        displayName: 'Max Retries',
-        name: 'maxRetries',
-        type: 'number',
-        default: 3,
-        description: 'Maximum number of retries for failed requests',
-        displayOptions: {
-          show: {
-            autoRetry: [true],
-          },
-        },
-      },
     ],
   };
 
@@ -77,18 +58,16 @@ export class SmartHttp implements INodeType {
     for (let i = 0; i < items.length; i++) {
       const method = this.getNodeParameter('method', i) as IHttpRequestMethods;
       const url = this.getNodeParameter('url', i) as string;
-      const autoRetry = this.getNodeParameter('autoRetry', i) as boolean;
-      const maxRetries = this.getNodeParameter('maxRetries', i) as number;
 
       try {
         // Get OAuth2 Enhanced credentials
         const credentials = await this.getCredentials('oAuth2ApiEnhanced');
         const autoRefresh = credentials.autoRefresh as boolean;
-        const retryAttempts = (credentials.retryAttempts as number) || 3;
-        const retryDelay = (credentials.retryDelay as number) || 1000;
-
-        // Determine actual retry count
-        const actualRetries = autoRefresh && autoRetry ? Math.min(maxRetries, retryAttempts) : 0;
+        
+        // Parameter validation with safe boundaries
+        const retryAttempts = autoRefresh ? 
+          Math.max(0, Math.min(10, (credentials.retryAttempts as number) || 3)) : 0;
+        const retryDelay = Math.max(100, Math.min(30000, (credentials.retryDelay as number) || 1000));
 
         const requestOptions = {
           method,
@@ -101,10 +80,39 @@ export class SmartHttp implements INodeType {
 
         let lastError: Error | null = null;
         let response = null;
+        const startTime = Date.now();
+        const maxExecutionTime = 300000; // 5 minutes maximum execution time
+
+        // Improved authentication error detection
+        const isAuthenticationError = (error: any): boolean => {
+          // Check HTTP status code (most reliable)
+          if (error.response?.status === 401 || error.status === 401) {
+            return true;
+          }
+          
+          // Check error codes
+          if (error.code === 'OAUTH_TOKEN_EXPIRED' || 
+              error.code === 'UNAUTHORIZED' ||
+              error.name === 'AuthenticationError') {
+            return true;
+          }
+          
+          // Fallback to message content (least reliable)
+          const errorMessage = (error.message || '').toLowerCase();
+          return errorMessage.includes('unauthorized') || 
+                 errorMessage.includes('authentication') ||
+                 errorMessage.includes('token expired') ||
+                 errorMessage.includes('invalid token');
+        };
 
         // Main retry loop
-        for (let attempt = 0; attempt <= actualRetries; attempt++) {
+        for (let attempt = 0; attempt <= retryAttempts; attempt++) {
           try {
+            // Check execution timeout
+            if (Date.now() - startTime > maxExecutionTime) {
+              throw new Error('OAuth2Enhanced execution timeout exceeded');
+            }
+
             // Use requestOAuth2 for automatic token handling
             response = await this.helpers.requestOAuth2.call(
               this,
@@ -122,23 +130,17 @@ export class SmartHttp implements INodeType {
           } catch (error) {
             lastError = error instanceof Error ? error : new Error('Unknown error');
             
-            // If not retrying or this is the last attempt, don't delay
-            if (attempt >= actualRetries) {
+            // If this is the last attempt, don't retry
+            if (attempt >= retryAttempts) {
               break;
             }
             
-            // Check if this is an authentication error worth retrying
-            const isAuthError = lastError.message.includes('401') || 
-                              lastError.message.includes('Unauthorized') ||
-                              lastError.message.includes('authentication') ||
-                              lastError.message.includes('token');
-            
-            if (!isAuthError) {
-              // Not an auth error, don't retry
+            // Only retry on authentication errors
+            if (!isAuthenticationError(error)) {
               break;
             }
             
-            // Wait before retry
+            // Wait before retry (with timeout check)
             await new Promise(resolve => setTimeout(resolve, retryDelay));
           }
         }

@@ -26,6 +26,15 @@ describe('SmartHttp Node', () => {
   });
 
   describe('节点属性', () => {
+    it('should have essential HTTP parameters only', () => {
+      const node = new SmartHttp();
+      const properties = node.description.properties;
+      const propertyNames = properties.map((p: any) => p.name);
+      
+      // After simplification, should only have method and url
+      expect(propertyNames).toEqual(['method', 'url']);
+    });
+
     it('should have HTTP method parameter', () => {
       const node = new SmartHttp();
       const properties = node.description.properties;
@@ -34,6 +43,14 @@ describe('SmartHttp Node', () => {
       expect(methodProp).toBeDefined();
       expect(methodProp?.type).toBe('options');
       expect(methodProp?.default).toBe('GET');
+      
+      // Should have standard HTTP methods
+      const optionValues = methodProp?.options.map((opt: any) => opt.value);
+      expect(optionValues).toContain('GET');
+      expect(optionValues).toContain('POST');
+      expect(optionValues).toContain('PUT');
+      expect(optionValues).toContain('DELETE');
+      expect(optionValues).toContain('PATCH');
     });
 
     it('should have URL parameter', () => {
@@ -46,24 +63,14 @@ describe('SmartHttp Node', () => {
       expect(urlProp?.required).toBe(true);
     });
 
-    it('should have auto retry parameter', () => {
+    it('should rely on credentials for retry configuration', () => {
       const node = new SmartHttp();
       const properties = node.description.properties;
-      const autoRetryProp = properties.find((p: any) => p.name === 'autoRetry');
+      const propertyNames = properties.map((p: any) => p.name);
       
-      expect(autoRetryProp).toBeDefined();
-      expect(autoRetryProp?.type).toBe('boolean');
-      expect(autoRetryProp?.default).toBe(true);
-    });
-
-    it('should have max retries parameter', () => {
-      const node = new SmartHttp();
-      const properties = node.description.properties;
-      const maxRetriesProp = properties.find((p: any) => p.name === 'maxRetries');
-      
-      expect(maxRetriesProp).toBeDefined();
-      expect(maxRetriesProp?.type).toBe('number');
-      expect(maxRetriesProp?.default).toBe(3);
+      // Retry configuration should now be in credentials, not node properties
+      expect(propertyNames).not.toContain('autoRetry');
+      expect(propertyNames).not.toContain('maxRetries');
     });
   });
 
