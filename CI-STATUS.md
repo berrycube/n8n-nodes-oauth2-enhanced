@@ -1,88 +1,88 @@
-# CI/CD Status
+# CI/CD 状态
 
-## 🎯 Current Status: ✅ WORKING
+## 🎯 当前状态: ✅ 正常工作
 
-Last updated: 2025-08-31
+最后更新: 2025-08-31
 
-## ✅ Passing Checks
+## ✅ 通过的检查
 
-### Build & Type Safety
-- ✅ TypeScript compilation (`pnpm run typecheck`)
-- ✅ Build process (`pnpm run build`)
-- ✅ Package validation
-- ✅ Dist files generation
+### 构建和类型安全
+- ✅ TypeScript编译 (`pnpm run typecheck`)
+- ✅ 构建过程 (`pnpm run build`)
+- ✅ 包验证
+- ✅ Dist文件生成
 
-### Code Quality
-- ✅ Simple code quality checks (custom lint-check.js)
-- ⚠️ ESLint (dependency issue workaround in place)
-- ✅ Security scan (basic checks)
+### 代码质量
+- ✅ 简单代码质量检查 (自定义 lint-check.js)
+- ⚠️ ESLint (依赖问题，已有解决方案)
+- ✅ 安全扫描 (基础检查)
 
-### Testing
-- ✅ Simple functionality tests (`pnpm run dev:test`)
-- ⚠️ Vitest tests (ESM/CJS compatibility issues)
+### 测试
+- ✅ 简单功能测试 (`pnpm run dev:test`)
+- ⚠️ Vitest测试 (ESM/CJS兼容性问题)
 
-## 🔧 Workarounds & Known Issues
+## 🔧 解决方案和已知问题
 
-### ESLint Dependency Issue
-**Problem**: ESLint fails due to p-limit dependency resolution in pnpm monorepo
-**Workaround**: Created custom lint-check.js script for basic code quality checks
-**Status**: CI passes with fallback mechanism
+### ESLint依赖问题
+**问题**: ESLint因pnpm monorepo中p-limit依赖解析问题而失败
+**解决方案**: 创建自定义lint-check.js脚本进行基础代码质量检查
+**状态**: CI通过备用机制通过
 
-### Vitest ESM/CJS Issues  
-**Problem**: n8n-workflow package has incorrect export configuration
-**Workaround**: Using simple-test-runner.js for basic functionality tests
-**Status**: Core functionality tested, full unit testing pending upstream fix
+### Vitest ESM/CJS问题  
+**问题**: n8n-workflow包的导出配置不正确
+**解决方案**: 使用simple-test-runner.js进行基础功能测试
+**状态**: 核心功能已测试，完整单元测试等待上游修复
 
-## 📋 CI Workflow Structure
+## 📋 CI工作流结构
 
-### Continuous Integration (ci.yml)
+### 持续集成 (ci.yml)
 ```yaml
 jobs:
   - test: TypeCheck + Lint + Build + Test
-  - validate: Package validation + Security scan
-  - security: Audit + Secret detection
+  - validate: 包验证 + 安全扫描
+  - security: 审计 + 敏感信息检测
 ```
 
-### Release Workflow (release.yml)
+### 发布工作流 (release.yml)
 ```yaml
 jobs:
-  - build-and-test: Full CI validation
-  - publish: npm publish + GitHub release
+  - build-and-test: 完整CI验证
+  - publish: npm发布 + GitHub发布
 ```
 
-## 🎯 Quality Gates
+## 🎯 质量门禁
 
-All CI checks must pass:
-- [x] TypeScript type checking
-- [x] Build succeeds
-- [x] Basic code quality (lint-check.js)
-- [x] Simple functionality tests
-- [x] Package validation
-- [x] Security scan
+所有CI检查必须通过:
+- [x] TypeScript类型检查
+- [x] 构建成功
+- [x] 基础代码质量 (lint-check.js)
+- [x] 简单功能测试
+- [x] 包验证
+- [x] 安全扫描
 
-## 🚀 Release Process
+## 🚀 发布流程
 
-1. Update version in package.json
-2. Create git tag (v*.*.*)
-3. Push tag to trigger release workflow
-4. CI validates all checks
-5. Automatic npm publish + GitHub release
+1. 更新package.json中的版本号
+2. 创建git标签 (v*.*.*)
+3. 推送标签触发发布工作流
+4. CI验证所有检查
+5. 自动npm发布 + GitHub发布
 
-## 📝 Development Workflow
+## 📝 开发工作流
 
 ```bash
-# Local development
-pnpm run dev          # Hot reload development
-pnpm run typecheck    # Type checking
-pnpm run lint         # Code quality check
-pnpm run dev:test     # Run tests
-pnpm run build        # Build for production
+# 本地开发
+pnpm run dev          # 热重载开发
+pnpm run typecheck    # 类型检查
+pnpm run lint         # 代码质量检查
+pnpm run dev:test     # 运行测试
+pnpm run build        # 生产构建
 ```
 
-## 🔄 Next Steps
+## 🔄 下一步计划
 
-1. ✅ Basic CI/CD working
-2. 🔲 Fix ESLint dependency issue (blocked by pnpm/eslint compatibility)
-3. 🔲 Full Vitest integration (blocked by n8n-workflow exports)
-4. 🔲 Add coverage reporting
-5. 🔲 Integration tests with Docker
+1. ✅ 基础CI/CD工作正常
+2. 🔲 修复ESLint依赖问题 (被pnpm/eslint兼容性阻塞)
+3. 🔲 完整Vitest集成 (被n8n-workflow导出阻塞)
+4. 🔲 添加覆盖率报告
+5. 🔲 Docker集成测试
