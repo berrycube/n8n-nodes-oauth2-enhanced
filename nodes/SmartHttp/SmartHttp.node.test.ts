@@ -40,7 +40,9 @@ describe('SmartHttp Node - Business Logic Tests', () => {
 
       mockExecuteFunctions.getNodeParameter
         .mockReturnValueOnce('GET') // method
-        .mockReturnValueOnce('https://api.example.com/data'); // url
+        .mockReturnValueOnce('https://api.example.com/data') // url
+        .mockReturnValueOnce(false) // autoRetry
+        .mockReturnValueOnce(0); // maxRetries
 
       mockExecuteFunctions.getCredentials.mockResolvedValueOnce({
         accessToken: 'test-access-token-123'
@@ -57,11 +59,12 @@ describe('SmartHttp Node - Business Logic Tests', () => {
 
       // Verify the request was made with correct parameters
       const requestCall = mockExecuteFunctions.helpers.request.mock.calls[0];
-      expect(requestCall[0]).toBe('https://api.example.com/data'); // url
-      expect(requestCall[1].method).toBe('GET');
-      expect(requestCall[1].headers['Authorization']).toBe('Bearer test-access-token-123');
-      expect(requestCall[1].headers['Content-Type']).toBe('application/json');
-      expect(requestCall[1].json).toBe(true);
+      const options = requestCall[0]; // Now using single options object
+      expect(options.url).toBe('https://api.example.com/data');
+      expect(options.method).toBe('GET');
+      expect(options.headers['Authorization']).toBe('Bearer test-access-token-123');
+      expect(options.headers['Content-Type']).toBe('application/json');
+      expect(options.json).toBe(true);
     });
 
     it('should make successful POST request with request body', async () => {
@@ -73,7 +76,9 @@ describe('SmartHttp Node - Business Logic Tests', () => {
 
       mockExecuteFunctions.getNodeParameter
         .mockReturnValueOnce('POST') // method
-        .mockReturnValueOnce('https://api.example.com/create'); // url
+        .mockReturnValueOnce('https://api.example.com/create') // url
+        .mockReturnValueOnce(false) // autoRetry
+        .mockReturnValueOnce(0); // maxRetries
 
       mockExecuteFunctions.getCredentials.mockResolvedValueOnce({
         accessToken: 'post-token-456'
@@ -88,8 +93,9 @@ describe('SmartHttp Node - Business Logic Tests', () => {
 
       // Verify POST method was used
       const requestCall = mockExecuteFunctions.helpers.request.mock.calls[0];
-      expect(requestCall[1].method).toBe('POST');
-      expect(requestCall[1].headers['Authorization']).toBe('Bearer post-token-456');
+      const options = requestCall[0];
+      expect(options.method).toBe('POST');
+      expect(options.headers['Authorization']).toBe('Bearer post-token-456');
     });
 
     it('should handle different HTTP methods correctly', async () => {
@@ -98,7 +104,9 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       for (const method of methods) {
         mockExecuteFunctions.getNodeParameter
           .mockReturnValueOnce(method)
-          .mockReturnValueOnce(`https://api.example.com/${method.toLowerCase()}`);
+          .mockReturnValueOnce(`https://api.example.com/${method.toLowerCase()}`)
+          .mockReturnValueOnce(false)
+          .mockReturnValueOnce(0);
 
         mockExecuteFunctions.getCredentials.mockResolvedValueOnce({
           accessToken: `${method.toLowerCase()}-token`
@@ -114,8 +122,9 @@ describe('SmartHttp Node - Business Logic Tests', () => {
         expect(result[0][0].json.body).toBe(`${method} response`);
 
         const requestCall = mockExecuteFunctions.helpers.request.mock.calls[0];
-        expect(requestCall[1].method).toBe(method);
-        expect(requestCall[1].headers['Authorization']).toBe(`Bearer ${method.toLowerCase()}-token`);
+        const options = requestCall[0];
+        expect(options.method).toBe(method);
+        expect(options.headers['Authorization']).toBe(`Bearer ${method.toLowerCase()}-token`);
 
         vi.clearAllMocks();
       }
@@ -132,7 +141,9 @@ describe('SmartHttp Node - Business Logic Tests', () => {
 
       mockExecuteFunctions.getNodeParameter
         .mockReturnValueOnce('GET')
-        .mockReturnValueOnce('https://secure-api.example.com/protected');
+        .mockReturnValueOnce('https://secure-api.example.com/protected')
+        .mockReturnValueOnce(false)
+        .mockReturnValueOnce(0);
 
       mockExecuteFunctions.getCredentials.mockResolvedValueOnce(testCredentials);
 
@@ -148,13 +159,16 @@ describe('SmartHttp Node - Business Logic Tests', () => {
 
       // Verify Authorization header contains the access token
       const requestCall = mockExecuteFunctions.helpers.request.mock.calls[0];
-      expect(requestCall[1].headers['Authorization']).toBe('Bearer advanced-oauth2-token');
+      const options = requestCall[0];
+      expect(options.headers['Authorization']).toBe('Bearer advanced-oauth2-token');
     });
 
     it('should handle missing access token gracefully', async () => {
       mockExecuteFunctions.getNodeParameter
         .mockReturnValueOnce('GET')
-        .mockReturnValueOnce('https://api.example.com/data');
+        .mockReturnValueOnce('https://api.example.com/data')
+        .mockReturnValueOnce(false)
+        .mockReturnValueOnce(0);
 
       // Simulate missing accessToken in credentials
       mockExecuteFunctions.getCredentials.mockResolvedValueOnce({
@@ -174,7 +188,8 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       expect(result[0][0].json.statusCode).toBe(200);
 
       const requestCall = mockExecuteFunctions.helpers.request.mock.calls[0];
-      expect(requestCall[1].headers['Authorization']).toBe('Bearer undefined');
+      const options = requestCall[0];
+      expect(options.headers['Authorization']).toBe('Bearer undefined');
     });
   });
 
@@ -182,7 +197,9 @@ describe('SmartHttp Node - Business Logic Tests', () => {
     it('should handle HTTP request errors when continueOnFail is false', async () => {
       mockExecuteFunctions.getNodeParameter
         .mockReturnValueOnce('GET')
-        .mockReturnValueOnce('https://api.example.com/error');
+        .mockReturnValueOnce('https://api.example.com/error')
+        .mockReturnValueOnce(false)
+        .mockReturnValueOnce(0);
 
       mockExecuteFunctions.getCredentials.mockResolvedValueOnce({
         accessToken: 'test-token'
@@ -200,7 +217,9 @@ describe('SmartHttp Node - Business Logic Tests', () => {
 
       mockExecuteFunctions.getNodeParameter
         .mockReturnValueOnce('GET')
-        .mockReturnValueOnce('https://api.example.com/error');
+        .mockReturnValueOnce('https://api.example.com/error')
+        .mockReturnValueOnce(false)
+        .mockReturnValueOnce(0);
 
       mockExecuteFunctions.getCredentials.mockResolvedValueOnce({
         accessToken: 'test-token'
@@ -219,7 +238,9 @@ describe('SmartHttp Node - Business Logic Tests', () => {
     it('should handle credential retrieval errors', async () => {
       mockExecuteFunctions.getNodeParameter
         .mockReturnValueOnce('GET')
-        .mockReturnValueOnce('https://api.example.com/data');
+        .mockReturnValueOnce('https://api.example.com/data')
+        .mockReturnValueOnce(false)
+        .mockReturnValueOnce(0);
 
       mockExecuteFunctions.getCredentials.mockRejectedValue(new Error('Invalid credentials'));
 
@@ -231,7 +252,9 @@ describe('SmartHttp Node - Business Logic Tests', () => {
 
       mockExecuteFunctions.getNodeParameter
         .mockReturnValueOnce('GET')
-        .mockReturnValueOnce('https://api.example.com/error');
+        .mockReturnValueOnce('https://api.example.com/error')
+        .mockReturnValueOnce(false)
+        .mockReturnValueOnce(0);
 
       mockExecuteFunctions.getCredentials.mockResolvedValueOnce({
         accessToken: 'test-token'
@@ -250,7 +273,9 @@ describe('SmartHttp Node - Business Logic Tests', () => {
     it('should handle response without statusCode', async () => {
       mockExecuteFunctions.getNodeParameter
         .mockReturnValueOnce('GET')
-        .mockReturnValueOnce('https://api.example.com/simple');
+        .mockReturnValueOnce('https://api.example.com/simple')
+        .mockReturnValueOnce(false)
+        .mockReturnValueOnce(0);
 
       mockExecuteFunctions.getCredentials.mockResolvedValueOnce({
         accessToken: 'test-token'
@@ -270,7 +295,9 @@ describe('SmartHttp Node - Business Logic Tests', () => {
     it('should handle response with body and headers', async () => {
       mockExecuteFunctions.getNodeParameter
         .mockReturnValueOnce('GET')
-        .mockReturnValueOnce('https://api.example.com/full');
+        .mockReturnValueOnce('https://api.example.com/full')
+        .mockReturnValueOnce(false)
+        .mockReturnValueOnce(0);
 
       mockExecuteFunctions.getCredentials.mockResolvedValueOnce({
         accessToken: 'test-token'
@@ -304,8 +331,8 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       ]);
 
       mockExecuteFunctions.getNodeParameter
-        .mockReturnValueOnce('GET').mockReturnValueOnce('https://api.example.com/1') // First item
-        .mockReturnValueOnce('GET').mockReturnValueOnce('https://api.example.com/2'); // Second item
+        .mockReturnValueOnce('GET').mockReturnValueOnce('https://api.example.com/1').mockReturnValueOnce(false).mockReturnValueOnce(0) // First item
+        .mockReturnValueOnce('GET').mockReturnValueOnce('https://api.example.com/2').mockReturnValueOnce(false).mockReturnValueOnce(0); // Second item
 
       mockExecuteFunctions.getCredentials
         .mockResolvedValueOnce({ accessToken: 'token1' })
@@ -324,11 +351,236 @@ describe('SmartHttp Node - Business Logic Tests', () => {
     });
   });
 
+  describe('OAuth2 Enhanced Auto-Refresh (Real Business Logic)', () => {
+    it('should detect expired token and refresh automatically', async () => {
+      const currentTime = Date.now();
+      const expiredCredentials = {
+        accessToken: 'expired-token',
+        refreshToken: 'valid-refresh-token',
+        clientId: 'test-client',
+        clientSecret: 'test-secret',
+        authUrl: 'https://auth.example.com',
+        expiresIn: 3600, // Required for isTokenExpired check
+        oauthTokenData: {
+          expires_at: new Date(currentTime - 10 * 60 * 1000).toISOString() // 10 minutes ago
+        }
+      };
+
+      const newTokenResponse = {
+        access_token: 'new-fresh-token',
+        expires_in: 3600,
+        refresh_token: 'new-refresh-token'
+      };
+
+      mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('GET')
+        .mockReturnValueOnce('https://api.example.com/data')
+        .mockReturnValueOnce(true) // autoRetry
+        .mockReturnValueOnce(3); // maxRetries
+
+      mockExecuteFunctions.getCredentials.mockResolvedValue(expiredCredentials);
+      
+      // Mock token refresh request (first call) and actual API call (second call)
+      mockExecuteFunctions.helpers.request
+        .mockResolvedValueOnce(newTokenResponse) // Token refresh call
+        .mockResolvedValueOnce({ statusCode: 200, body: 'success', headers: {} }); // Actual API call
+
+      const result = await smartHttp.execute.call(mockExecuteFunctions);
+
+      expect(result[0][0].json.statusCode).toBe(200);
+      expect(result[0][0].json.body).toBe('success');
+
+      // Verify two calls were made
+      expect(mockExecuteFunctions.helpers.request).toHaveBeenCalledTimes(2);
+
+      // Verify token refresh was called first
+      const refreshCall = mockExecuteFunctions.helpers.request.mock.calls[0];
+      expect(refreshCall[0].method).toBe('POST');
+      expect(refreshCall[0].form.grant_type).toBe('refresh_token');
+      expect(refreshCall[0].form.refresh_token).toBe('valid-refresh-token');
+
+      // Verify actual request used new token
+      const apiCall = mockExecuteFunctions.helpers.request.mock.calls[1];
+      expect(apiCall[0].headers['Authorization']).toBe('Bearer new-fresh-token');
+    });
+
+    it('should handle 401 auth errors with automatic retry', async () => {
+      const credentials = {
+        accessToken: 'invalid-token',
+        refreshToken: 'valid-refresh-token',
+        clientId: 'test-client',
+        clientSecret: 'test-secret',
+        authUrl: 'https://auth.example.com'
+      };
+
+      const newTokenResponse = {
+        access_token: 'refreshed-token',
+        expires_in: 3600
+      };
+
+      const authError = new Error('Unauthorized');
+      (authError as any).statusCode = 401;
+
+      mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('GET')
+        .mockReturnValueOnce('https://api.example.com/protected')
+        .mockReturnValueOnce(true) // autoRetry
+        .mockReturnValueOnce(2); // maxRetries
+
+      mockExecuteFunctions.getCredentials.mockResolvedValue(credentials);
+
+      // Mock: First API call fails with 401, then token refresh, then success
+      mockExecuteFunctions.helpers.request
+        .mockRejectedValueOnce(authError) // First API call fails
+        .mockResolvedValueOnce(newTokenResponse) // Token refresh succeeds
+        .mockResolvedValueOnce({ statusCode: 200, body: 'protected data' }); // Retry succeeds
+
+      const result = await smartHttp.execute.call(mockExecuteFunctions);
+
+      expect(result[0][0].json.statusCode).toBe(200);
+      expect(result[0][0].json.body).toBe('protected data');
+      expect(result[0][0].json.retryAttempt).toBe(1); // One retry happened
+
+      // Verify 3 calls: failed API + refresh + successful API
+      expect(mockExecuteFunctions.helpers.request).toHaveBeenCalledTimes(3);
+    });
+
+    it('should implement exponential backoff for retries', async () => {
+      const credentials = {
+        accessToken: 'test-token',
+        refreshToken: 'refresh-token',
+        clientId: 'client',
+        clientSecret: 'secret',
+        authUrl: 'https://auth.example.com'
+      };
+
+      const networkError = new Error('Network timeout');
+      (networkError as any).statusCode = 500;
+
+      mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('GET')
+        .mockReturnValueOnce('https://api.example.com/flaky')
+        .mockReturnValueOnce(true) // autoRetry
+        .mockReturnValueOnce(2); // maxRetries
+
+      mockExecuteFunctions.getCredentials.mockResolvedValue(credentials);
+
+      // Mock: All calls fail with network error (non-auth error)
+      mockExecuteFunctions.helpers.request
+        .mockRejectedValueOnce(networkError)
+        .mockRejectedValueOnce(networkError)
+        .mockRejectedValueOnce(networkError);
+
+      mockExecuteFunctions.continueOnFail.mockReturnValue(true);
+
+      // Use fake timers to test delay
+      vi.useFakeTimers();
+      
+      const executePromise = smartHttp.execute.call(mockExecuteFunctions);
+      
+      // Fast-forward through delays
+      await vi.runAllTimersAsync();
+      
+      const result = await executePromise;
+      
+      vi.useRealTimers();
+
+      // Should fail after all retries
+      expect(result[0][0].json.error).toBe('Network timeout');
+      expect(result[0][0].json.attempts).toBe(3); // 1 initial + 2 retries
+      expect(mockExecuteFunctions.helpers.request).toHaveBeenCalledTimes(3);
+    });
+
+    it('should fail when refresh token is missing', async () => {
+      const credentialsNoRefresh = {
+        accessToken: 'expired-token',
+        // No refreshToken
+        expiresIn: 3600,
+        oauthTokenData: {
+          expires_at: new Date(Date.now() - 10 * 60 * 1000).toISOString()
+        }
+      };
+
+      mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('GET')
+        .mockReturnValueOnce('https://api.example.com/data')
+        .mockReturnValueOnce(true)
+        .mockReturnValueOnce(3);
+
+      mockExecuteFunctions.getCredentials.mockResolvedValue(credentialsNoRefresh);
+
+      await expect(smartHttp.execute.call(mockExecuteFunctions))
+        .rejects.toThrow('No refresh token available for token refresh');
+    });
+
+    it('should handle token refresh failure gracefully', async () => {
+      const credentials = {
+        accessToken: 'expired-token',
+        refreshToken: 'invalid-refresh-token',
+        clientId: 'test-client',
+        clientSecret: 'test-secret',
+        authUrl: 'https://auth.example.com',
+        expiresIn: 3600,
+        oauthTokenData: {
+          expires_at: new Date(Date.now() - 10 * 60 * 1000).toISOString()
+        }
+      };
+
+      const refreshError = new Error('Invalid refresh token');
+      (refreshError as any).statusCode = 400;
+
+      mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('GET')
+        .mockReturnValueOnce('https://api.example.com/data')
+        .mockReturnValueOnce(true)
+        .mockReturnValueOnce(1);
+
+      mockExecuteFunctions.getCredentials.mockResolvedValue(credentials);
+      mockExecuteFunctions.helpers.request.mockRejectedValue(refreshError);
+
+      await expect(smartHttp.execute.call(mockExecuteFunctions))
+        .rejects.toThrow('Token refresh failed: Invalid refresh token');
+    });
+
+    it('should not refresh token when not expired', async () => {
+      const validCredentials = {
+        accessToken: 'valid-token',
+        refreshToken: 'refresh-token',
+        oauthTokenData: {
+          expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 minutes from now
+        }
+      };
+
+      mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('GET')
+        .mockReturnValueOnce('https://api.example.com/data')
+        .mockReturnValueOnce(false) // autoRetry disabled
+        .mockReturnValueOnce(0);
+
+      mockExecuteFunctions.getCredentials.mockResolvedValue(validCredentials);
+      mockExecuteFunctions.helpers.request.mockResolvedValue({ 
+        statusCode: 200, 
+        body: 'success' 
+      });
+
+      const result = await smartHttp.execute.call(mockExecuteFunctions);
+
+      expect(result[0][0].json.statusCode).toBe(200);
+      // Should only call API once (no token refresh)
+      expect(mockExecuteFunctions.helpers.request).toHaveBeenCalledTimes(1);
+      
+      const apiCall = mockExecuteFunctions.helpers.request.mock.calls[0];
+      expect(apiCall[0].headers['Authorization']).toBe('Bearer valid-token');
+    });
+  });
+
   describe('Request Configuration', () => {
     it('should configure request with correct options structure', async () => {
       mockExecuteFunctions.getNodeParameter
         .mockReturnValueOnce('PUT')
-        .mockReturnValueOnce('https://api.example.com/update');
+        .mockReturnValueOnce('https://api.example.com/update')
+        .mockReturnValueOnce(false)
+        .mockReturnValueOnce(0);
 
       mockExecuteFunctions.getCredentials.mockResolvedValueOnce({
         accessToken: 'config-test-token'
@@ -341,9 +593,8 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       await smartHttp.execute.call(mockExecuteFunctions);
 
       const requestCall = mockExecuteFunctions.helpers.request.mock.calls[0];
-      const [url, options] = requestCall;
+      const options = requestCall[0];
 
-      expect(url).toBe('https://api.example.com/update');
       expect(options.method).toBe('PUT');
       expect(options.url).toBe('https://api.example.com/update');
       expect(options.headers['Authorization']).toBe('Bearer config-test-token');
@@ -357,7 +608,9 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       for (const method of methods) {
         mockExecuteFunctions.getNodeParameter
           .mockReturnValueOnce(method)
-          .mockReturnValueOnce('https://api.example.com/endpoint');
+          .mockReturnValueOnce('https://api.example.com/endpoint')
+          .mockReturnValueOnce(false)
+          .mockReturnValueOnce(0);
 
         mockExecuteFunctions.getCredentials.mockResolvedValueOnce({
           accessToken: 'consistent-token'
@@ -368,7 +621,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
         await smartHttp.execute.call(mockExecuteFunctions);
 
         const requestCall = mockExecuteFunctions.helpers.request.mock.calls[0];
-        const options = requestCall[1];
+        const options = requestCall[0];
 
         // Verify consistent structure
         expect(options.method).toBe(method);

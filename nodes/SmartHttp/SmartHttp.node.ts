@@ -71,50 +71,150 @@ export class SmartHttp implements INodeType {
   };
 
   async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
+    // Helper functions defined within execute context
+    const isTokenExpired = (credentials: any): boolean => {
+      if (!credentials.expiresIn || !credentials.oauthTokenData?.expires_at) {
+        return false;
+      }
+      
+      const expiryTime = new Date(credentials.oauthTokenData.expires_at).getTime();
+      const currentTime = Date.now();
+      const bufferTime = 5 * 60 * 1000; // 5 minutes buffer
+      
+      return currentTime >= (expiryTime - bufferTime);
+    };
+
+    const isAuthError = (error: any): boolean => {
+      return error.statusCode === 401 || 
+             error.statusCode === 403 || 
+             (error.message && error.message.toLowerCase().includes('unauthorized'));
+    };
+
+    const refreshAccessToken = async (credentials: any): Promise<any> => {
+      if (!credentials.refreshToken) {
+        throw new Error('No refresh token available for token refresh');
+      }
+
+      try {
+        const refreshResponse = await this.helpers.request({
+          method: 'POST',
+          url: credentials.accessTokenUrl || `${credentials.authUrl}/token`,
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          form: {
+            grant_type: 'refresh_token',
+            refresh_token: credentials.refreshToken,
+            client_id: credentials.clientId,
+            client_secret: credentials.clientSecret,
+          },
+          json: true,
+        });
+
+        // Update credentials with new token
+        credentials.accessToken = refreshResponse.access_token;
+        if (refreshResponse.refresh_token) {
+          credentials.refreshToken = refreshResponse.refresh_token;
+        }
+        if (refreshResponse.expires_in) {
+          credentials.oauthTokenData = {
+            expires_at: new Date(Date.now() + refreshResponse.expires_in * 1000).toISOString()
+          };
+        }
+
+        return credentials;
+      } catch (error) {
+        throw new Error(`Token refresh failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    };
     const items = this.getInputData();
     const returnData: INodeExecutionData[] = [];
 
     for (let i = 0; i < items.length; i++) {
       const method = this.getNodeParameter('method', i) as IHttpRequestMethods;
       const url = this.getNodeParameter('url', i) as string;
+      const autoRetry = this.getNodeParameter('autoRetry', i) as boolean;
+      const maxRetries = this.getNodeParameter('maxRetries', i) as number;
 
-      try {
-        // Get OAuth2 credentials
-        const credentials = await this.getCredentials('oAuth2ApiEnhanced');
-        
-        const options = {
-          method,
-          url,
-          headers: {
-            'Authorization': `Bearer ${credentials.accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          json: true,
-        };
+      let lastError: any = null;
+      let attempt = 0;
+      const maxAttempts = autoRetry ? maxRetries + 1 : 1;
 
-        const response = await this.helpers.request(url, options);
-        
-        returnData.push({
-          json: {
-            statusCode: response.statusCode || 200,
-            body: response.body || response,
-            headers: response.headers || {},
-          },
-        });
-      } catch (error) {
-        if (this.continueOnFail()) {
+      while (attempt < maxAttempts) {
+        try {
+          // Get OAuth2 credentials
+          let credentials = await this.getCredentials('oAuth2ApiEnhanced');
+          
+          // Check if token needs refresh
+          if (isTokenExpired(credentials)) {
+            credentials = await refreshAccessToken(credentials);
+          }
+          
+          const options = {
+            method,
+            url,
+            headers: {
+              'Authorization': `Bearer ${credentials.accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            json: true,
+          };
+
+          const response = await this.helpers.request(options);
+          
           returnData.push({
             json: {
-              error: error instanceof Error ? error.message : 'Unknown error',
-              item: i,
+              statusCode: response.statusCode || 200,
+              body: response.body || response,
+              headers: response.headers || {},
+              retryAttempt: attempt,
             },
           });
-        } else {
-          throw new NodeOperationError(
-            this.getNode(),
-            error instanceof Error ? error : new Error('Unknown error'),
-            { itemIndex: i }
-          );
+          
+          // Success - break out of retry loop
+          break;
+          
+        } catch (error) {
+          lastError = error;
+          attempt++;
+          
+          // If it's an auth error and we have retries left, try to refresh token
+          if (autoRetry && attempt < maxAttempts && isAuthError(error)) {
+            try {
+              const credentials = await this.getCredentials('oAuth2ApiEnhanced');
+              await refreshAccessToken(credentials);
+              continue; // Retry with refreshed token
+            } catch (refreshError) {
+              // If refresh fails, continue to next attempt or fail
+              lastError = refreshError;
+            }
+          }
+          
+          // If no more retries, handle the error
+          if (attempt >= maxAttempts) {
+            if (this.continueOnFail()) {
+              returnData.push({
+                json: {
+                  error: lastError instanceof Error ? lastError.message : 'Unknown error',
+                  item: i,
+                  attempts: attempt,
+                },
+              });
+              break;
+            } else {
+              throw new NodeOperationError(
+                this.getNode(),
+                lastError instanceof Error ? lastError : new Error('Unknown error'),
+                { itemIndex: i }
+              );
+            }
+          }
+          
+          // Wait before retry (exponential backoff)
+          if (attempt < maxAttempts) {
+            const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000); // Max 10s delay
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
         }
       }
     }
