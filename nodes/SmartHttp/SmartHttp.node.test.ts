@@ -173,7 +173,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       // Simulate missing accessToken in credentials
       mockExecuteFunctions.getCredentials.mockResolvedValueOnce({
         clientId: 'test-client',
-        clientSecret: 'test-secret'
+        clientSecret: 'test-secret' // Test credential - not real
         // Missing accessToken
       });
 
