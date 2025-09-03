@@ -176,8 +176,58 @@ n8n-workflow包的导出配置存在问题，导致Vitest无法正确解析。�
 3. **测试**: 确保基础功能测试通过
 4. **构建**: 确保项目可以成功构建
 
+## 🔍 插件验证
+
+### n8n API验证
+
+开发过程中可以使用以下脚本验证插件是否正确加载到n8n中：
+
+**完整验证**（推荐）:
+```bash
+# 设置API密钥并运行完整验证
+N8N_API_KEY=test-api-key-for-development node scripts/verify-plugin-api.js
+```
+
+**快速诊断**:
+```bash
+# 快速检查API连通性和基础配置
+./scripts/quick-diagnosis.sh
+```
+
+### 常见API问题解决
+
+**问题1: API返回HTML而非JSON**
+- **原因**: 缺少API密钥认证或端点错误
+- **解决**: 确保Docker Compose配置包含`N8N_API_KEY`环境变量
+
+**问题2: 401认证错误**
+- **原因**: API密钥未设置或不正确  
+- **解决**: 检查环境变量`N8N_API_KEY`设置
+
+**问题3: 插件未在节点类型中显示**
+- **原因**: 插件未正确安装或n8n未重启
+- **解决**: 重新安装插件并重启n8n容器
+
+### n8n API端点参考
+
+正确的n8n REST API端点：
+- 健康检查: `GET /healthz`
+- 工作流列表: `GET /rest/workflows`  
+- 节点类型: `GET /types/nodes`
+- 创建工作流: `POST /rest/workflows`
+
+所有API调用都需要：
+```javascript
+headers: {
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+  'X-N8N-API-KEY': 'your-api-key'
+}
+```
+
 ## 🔗 相关链接
 
 - [n8n插件开发文档](https://docs.n8n.io/integrations/creating-nodes/)
+- [n8n REST API文档](https://docs.n8n.io/api/)
 - [OAuth2 API文档](https://docs.n8n.io/integrations/builtin/credentials/oauth2/)
 - [TypeScript配置指南](https://www.typescriptlang.org/tsconfig)
