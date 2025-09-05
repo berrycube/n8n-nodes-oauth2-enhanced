@@ -41,9 +41,9 @@ describe('SmartHttp OAuth2 Real-World Boundary Tests', () => {
       const currentTime = Date.now();
       const expiredCredentials = {
         accessToken: 'expired-token',
-        refreshToken: 'valid-refresh-token',
+        refreshToken: 'valid-refresh-token', // nosemgrep: generic.secrets.security.detected-private-key
         clientId: 'test-client',
-        clientSecret: 'test-secret',
+        clientSecret: 'test-secret', // nosemgrep: generic.secrets.security.detected-private-key
         authUrl: 'https://oauth2.googleapis.com/token', // 真实的Google端点
         expiresIn: 3600,
         oauthTokenData: {
@@ -51,11 +51,11 @@ describe('SmartHttp OAuth2 Real-World Boundary Tests', () => {
         }
       };
 
-      // 真实的Google OAuth2 token响应格式
+      // 真实的Google OAuth2 token响应格式 (测试用模拟数据 - 非真实凭据)
       const googleTokenResponse = {
-        access_token: 'ya29.a0AfH6SMC7...',
+        access_token: 'ya29.a0AfH6SMC7...', // nosemgrep: generic.secrets.security.detected-private-key
         expires_in: 3599, // Google通常返回3599而不是3600
-        refresh_token: '1//04xxxxxxxxxxx',
+        refresh_token: '1//04xxxxxxxxxxx', // nosemgrep: generic.secrets.security.detected-private-key
         scope: 'https://www.googleapis.com/auth/userinfo.email',
         token_type: 'Bearer'
       };
@@ -90,9 +90,9 @@ describe('SmartHttp OAuth2 Real-World Boundary Tests', () => {
       const currentTime = Date.now();
       const expiredCredentials = {
         accessToken: 'expired-token',
-        refreshToken: 'valid-refresh-token',
+        refreshToken: 'valid-refresh-token', // nosemgrep: generic.secrets.security.detected-private-key
         clientId: 'test-client',
-        clientSecret: 'test-secret',
+        clientSecret: 'test-secret', // nosemgrep: generic.secrets.security.detected-private-key
         authUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
         expiresIn: 3600,
         oauthTokenData: {
@@ -106,8 +106,8 @@ describe('SmartHttp OAuth2 Real-World Boundary Tests', () => {
         scope: 'https://graph.microsoft.com/.default',
         expires_in: 3599,
         ext_expires_in: 3599,
-        access_token: 'EwBwA8l6BAAU...',
-        refresh_token: 'M.R3_BAY.-CXtN...'
+        access_token: 'EwBwA8l6BAAU...', // nosemgrep: generic.secrets.security.detected-private-key
+        refresh_token: 'M.R3_BAY.-CXtN...' // nosemgrep: generic.secrets.security.detected-private-key
       };
 
       mockExecuteFunctions.getNodeParameter
@@ -139,9 +139,9 @@ describe('SmartHttp OAuth2 Real-World Boundary Tests', () => {
       const currentTime = Date.now();
       const expiredCredentials = {
         accessToken: 'expired-token',
-        refreshToken: 'valid-refresh-token',
+        refreshToken: 'valid-refresh-token', // nosemgrep: generic.secrets.security.detected-private-key
         clientId: 'test-client',
-        clientSecret: 'test-secret',
+        clientSecret: 'test-secret', // nosemgrep: generic.secrets.security.detected-private-key
         authUrl: 'https://api.custom-provider.com/oauth/token',
         expiresIn: 3600,
         oauthTokenData: {
@@ -262,9 +262,9 @@ describe('SmartHttp OAuth2 Real-World Boundary Tests', () => {
     it('should handle OAuth2 rate limiting errors', async () => {
       const credentials = {
         accessToken: 'valid-token', // Token本身有效
-        refreshToken: 'valid-refresh-token',
+        refreshToken: 'valid-refresh-token', // nosemgrep: generic.secrets.security.detected-private-key
         clientId: 'test-client',
-        clientSecret: 'test-secret',
+        clientSecret: 'test-secret', // nosemgrep: generic.secrets.security.detected-private-key
         authUrl: 'https://oauth2.googleapis.com/token',
         expiresIn: 3600,
         oauthTokenData: {
