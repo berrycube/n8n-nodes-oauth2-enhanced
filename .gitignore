@@ -40,7 +40,7 @@ temp/
 
 # Package manager
 .pnpm-debug.log*
-pnpm-lock.yaml
+# pnpm-lock.yaml - 需要提交以确保CI构建依赖一致性
 package-lock.json
 
 # TypeScript cache
