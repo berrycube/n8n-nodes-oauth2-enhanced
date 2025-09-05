@@ -111,20 +111,36 @@ export class SmartHttp implements INodeType {
           json: true,
         });
 
-        // Update credentials with new token
-        credentials.accessToken = refreshResponse.access_token;
-        if (refreshResponse.refresh_token) {
-          credentials.refreshToken = refreshResponse.refresh_token;
+        // Update credentials with new token - handle both standard and non-standard field names
+        credentials.accessToken = refreshResponse.access_token || refreshResponse.accessToken;
+        if (refreshResponse.refresh_token || refreshResponse.refreshToken) {
+          credentials.refreshToken = refreshResponse.refresh_token || refreshResponse.refreshToken;
         }
-        if (refreshResponse.expires_in) {
+        const expiresIn = refreshResponse.expires_in || refreshResponse.expiresIn;
+        if (expiresIn) {
           credentials.oauthTokenData = {
-            expires_at: new Date(Date.now() + refreshResponse.expires_in * 1000).toISOString()
+            expires_at: new Date(Date.now() + expiresIn * 1000).toISOString()
           };
         }
 
         return credentials;
       } catch (error) {
-        throw new Error(`Token refresh failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        // Extract detailed error information from OAuth2 providers
+        let errorMessage = 'Unknown error';
+        
+        if (error instanceof Error) {
+          errorMessage = error.message;
+          
+          // Try to extract OAuth2 specific error details
+          const errorResponse = (error as any).response?.body;
+          if (errorResponse && typeof errorResponse === 'object') {
+            if (errorResponse.error) {
+              errorMessage = `${errorResponse.error}: ${errorResponse.error_description || 'No description'}`;
+            }
+          }
+        }
+        
+        throw new Error(`Token refresh failed: ${errorMessage}`);
       }
     };
     const items = this.getInputData();

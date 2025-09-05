@@ -41,6 +41,7 @@ temp/
 # Package manager
 .pnpm-debug.log*
 pnpm-lock.yaml
+package-lock.json
 
 # TypeScript cache
 *.tsbuildinfo
