@@ -173,7 +173,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       // Simulate missing accessToken in credentials
       mockExecuteFunctions.getCredentials.mockResolvedValueOnce({
         clientId: 'test-client',
-        clientSecret: 'test-secret' // Test credential - not real
+        clientSecret: 'test-secret' // eslint-disable-line: Test credential only
         // Missing accessToken
       });
 
@@ -331,8 +331,14 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       ]);
 
       mockExecuteFunctions.getNodeParameter
-        .mockReturnValueOnce('GET').mockReturnValueOnce('https://api.example.com/1').mockReturnValueOnce(false).mockReturnValueOnce(0) // First item
-        .mockReturnValueOnce('GET').mockReturnValueOnce('https://api.example.com/2').mockReturnValueOnce(false).mockReturnValueOnce(0); // Second item
+        .mockReturnValueOnce('GET')
+        .mockReturnValueOnce('https://api.example.com/1')
+        .mockReturnValueOnce(false)
+        .mockReturnValueOnce(0) // First item
+        .mockReturnValueOnce('GET')
+        .mockReturnValueOnce('https://api.example.com/2')
+        .mockReturnValueOnce(false)
+        .mockReturnValueOnce(0); // Second item
 
       mockExecuteFunctions.getCredentials
         .mockResolvedValueOnce({ accessToken: 'token1' })
@@ -358,7 +364,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
         accessToken: 'expired-token',
         refreshToken: 'valid-refresh-token',
         clientId: 'test-client',
-        clientSecret: 'test-secret',
+        clientSecret: 'test-secret', // eslint-disable-line: Test credential only
         authUrl: 'https://auth.example.com',
         expiresIn: 3600, // Required for isTokenExpired check
         oauthTokenData: {
@@ -409,7 +415,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
         accessToken: 'invalid-token',
         refreshToken: 'valid-refresh-token',
         clientId: 'test-client',
-        clientSecret: 'test-secret',
+        clientSecret: 'test-secret', // eslint-disable-line: Test credential only
         authUrl: 'https://auth.example.com'
       };
 
@@ -450,7 +456,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
         accessToken: 'test-token',
         refreshToken: 'refresh-token',
         clientId: 'client',
-        clientSecret: 'secret',
+        clientSecret: 'secret', // eslint-disable-line: Test credential only
         authUrl: 'https://auth.example.com'
       };
 
@@ -518,7 +524,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
         accessToken: 'expired-token',
         refreshToken: 'invalid-refresh-token',
         clientId: 'test-client',
-        clientSecret: 'test-secret',
+        clientSecret: 'test-secret', // eslint-disable-line: Test credential only
         authUrl: 'https://auth.example.com',
         expiresIn: 3600,
         oauthTokenData: {
