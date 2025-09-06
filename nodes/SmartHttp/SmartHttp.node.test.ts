@@ -173,7 +173,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       // Simulate missing accessToken in credentials
       mockExecuteFunctions.getCredentials.mockResolvedValueOnce({
         clientId: 'test-client',
-        clientSecret: 'test-secret' // Test credential - not real
+        clientSecret: 'test-secret' // eslint-disable-line: Test credential only
         // Missing accessToken
       });
 
@@ -364,7 +364,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
         accessToken: 'expired-token',
         refreshToken: 'valid-refresh-token',
         clientId: 'test-client',
-        clientSecret: 'test-secret', // nosemgrep: generic.secrets.security.detected-private-key
+        clientSecret: 'test-secret', // eslint-disable-line: Test credential only
         authUrl: 'https://auth.example.com',
         expiresIn: 3600, // Required for isTokenExpired check
         oauthTokenData: {
@@ -415,7 +415,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
         accessToken: 'invalid-token',
         refreshToken: 'valid-refresh-token',
         clientId: 'test-client',
-        clientSecret: 'test-secret', // nosemgrep: generic.secrets.security.detected-private-key
+        clientSecret: 'test-secret', // eslint-disable-line: Test credential only
         authUrl: 'https://auth.example.com'
       };
 
@@ -456,7 +456,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
         accessToken: 'test-token',
         refreshToken: 'refresh-token',
         clientId: 'client',
-        clientSecret: 'secret',
+        clientSecret: 'secret', // eslint-disable-line: Test credential only
         authUrl: 'https://auth.example.com'
       };
 
@@ -500,7 +500,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
     it('should fail when refresh token is missing', async () => {
       const credentialsNoRefresh = {
         accessToken: 'expired-token',
-        // No refreshToken
+        // No refreshToken - this should trigger immediate error
         expiresIn: 3600,
         oauthTokenData: {
           expires_at: new Date(Date.now() - 10 * 60 * 1000).toISOString()
@@ -510,8 +510,8 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       mockExecuteFunctions.getNodeParameter
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://api.example.com/data')
-        .mockReturnValueOnce(true)
-        .mockReturnValueOnce(3);
+        .mockReturnValueOnce(false) // Disable autoRetry to avoid delays
+        .mockReturnValueOnce(0); // Zero retries for fast execution
 
       mockExecuteFunctions.getCredentials.mockResolvedValue(credentialsNoRefresh);
 
@@ -524,7 +524,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
         accessToken: 'expired-token',
         refreshToken: 'invalid-refresh-token',
         clientId: 'test-client',
-        clientSecret: 'test-secret', // nosemgrep: generic.secrets.security.detected-private-key
+        clientSecret: 'test-secret', // eslint-disable-line: Test credential only
         authUrl: 'https://auth.example.com',
         expiresIn: 3600,
         oauthTokenData: {
@@ -538,8 +538,8 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       mockExecuteFunctions.getNodeParameter
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://api.example.com/data')
-        .mockReturnValueOnce(true)
-        .mockReturnValueOnce(1);
+        .mockReturnValueOnce(false) // Disable autoRetry for fast execution
+        .mockReturnValueOnce(0); // Zero retries
 
       mockExecuteFunctions.getCredentials.mockResolvedValue(credentials);
       mockExecuteFunctions.helpers.request.mockRejectedValue(refreshError);
