@@ -257,7 +257,15 @@ describe('SmartHttp Node - Business Logic Tests', () => {
     it('should use correct OAuth2 request parameters', async () => {
       mockExecuteFunctions.getNodeParameter
         .mockReturnValueOnce('POST')
-        .mockReturnValueOnce('https://api.example.com/data');
+        .mockReturnValueOnce('https://api.example.com/data')
+        // queryParametersUi
+        .mockReturnValueOnce({ parameters: [{ name: 'q', value: '42' }] })
+        // headersUi
+        .mockReturnValueOnce({ parameter: [{ name: 'X-Trace', value: 'abc' }] })
+        // bodyMode
+        .mockReturnValueOnce('json')
+        // bodyJson
+        .mockReturnValueOnce({ hello: 'world' });
         
       mockExecuteFunctions.getCredentials.mockResolvedValueOnce({
         autoRefresh: true,
@@ -274,9 +282,51 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       // Verify call parameters
       expect(callArgs[1]).toBe('oAuth2ApiEnhanced'); // Credential name
       expect(callArgs[2].method).toBe('POST'); // HTTP method
-      expect(callArgs[2].url).toBe('https://api.example.com/data'); // URL
-      expect(callArgs[2].headers['Content-Type']).toBe('application/json'); // Headers
+      expect(callArgs[2].url).toBe('https://api.example.com/data?q=42'); // URL with query
+      expect(callArgs[2].headers['Content-Type']).toBe('application/json'); // Default header
+      expect(callArgs[2].headers['X-Trace']).toBe('abc'); // Custom header
+      expect(callArgs[2].body).toEqual({ hello: 'world' }); // JSON body
       expect(callArgs[3].tokenType).toBe('Bearer'); // Token type
+    });
+  });
+
+  describe('Request Modeling', () => {
+    it('should append multiple query params and merge existing ones', async () => {
+      mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('GET')
+        .mockReturnValueOnce('https://api.example.com/path?pre=1')
+        .mockReturnValueOnce({ parameters: [ { name: 'pre', value: '2' }, { name: 'x', value: 'y' } ] })
+        .mockReturnValueOnce({}) // headersUi
+        .mockReturnValueOnce('none'); // bodyMode
+
+      mockExecuteFunctions.getCredentials.mockResolvedValueOnce({ autoRefresh: false });
+      mockExecuteFunctions.helpers.requestOAuth2.call
+        .mockResolvedValue({ statusCode: 200, body: {} });
+
+      await smartHttp.execute.call(mockExecuteFunctions);
+
+      const url = mockExecuteFunctions.helpers.requestOAuth2.call.mock.calls[0][2].url;
+      expect(url).toBe('https://api.example.com/path?pre=2&x=y');
+    });
+
+    it('should include custom headers and respect overrides', async () => {
+      mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('POST')
+        .mockReturnValueOnce('https://api.example.com/data')
+        .mockReturnValueOnce({}) // query
+        .mockReturnValueOnce({ parameter: [ { name: 'Content-Type', value: 'application/x-custom' }, { name: 'X-Test', value: '1' } ] })
+        .mockReturnValueOnce('json')
+        .mockReturnValueOnce({});
+
+      mockExecuteFunctions.getCredentials.mockResolvedValueOnce({ autoRefresh: false });
+      mockExecuteFunctions.helpers.requestOAuth2.call
+        .mockResolvedValue({ statusCode: 200, body: {} });
+
+      await smartHttp.execute.call(mockExecuteFunctions);
+
+      const headers = mockExecuteFunctions.helpers.requestOAuth2.call.mock.calls[0][2].headers;
+      expect(headers['Content-Type']).toBe('application/x-custom');
+      expect(headers['X-Test']).toBe('1');
     });
   });
 });

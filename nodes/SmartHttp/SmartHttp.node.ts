@@ -48,6 +48,91 @@ export class SmartHttp implements INodeType {
         required: true,
         description: 'The URL to make the request to',
       },
+      {
+        displayName: 'Query Parameters',
+        name: 'queryParametersUi',
+        type: 'fixedCollection',
+        placeholder: 'Add Parameter',
+        default: {},
+        options: [
+          {
+            displayName: 'Parameters',
+            name: 'parameters',
+            type: 'collection',
+            placeholder: 'Add Parameter',
+            default: {},
+            options: [
+              {
+                displayName: 'Name',
+                name: 'name',
+                type: 'string',
+                default: '',
+              },
+              {
+                displayName: 'Value',
+                name: 'value',
+                type: 'string',
+                default: '',
+              },
+            ],
+          },
+        ],
+        description: 'Query string parameters to append to the URL',
+      },
+      {
+        displayName: 'Headers',
+        name: 'headersUi',
+        type: 'fixedCollection',
+        placeholder: 'Add Header',
+        default: {},
+        options: [
+          {
+            displayName: 'Header',
+            name: 'parameter',
+            type: 'collection',
+            placeholder: 'Add Header',
+            default: {},
+            options: [
+              {
+                displayName: 'Name',
+                name: 'name',
+                type: 'string',
+                default: '',
+              },
+              {
+                displayName: 'Value',
+                name: 'value',
+                type: 'string',
+                default: '',
+              },
+            ],
+          },
+        ],
+        description: 'Additional request headers',
+      },
+      {
+        displayName: 'Body Mode',
+        name: 'bodyMode',
+        type: 'options',
+        options: [
+          { name: 'None', value: 'none' },
+          { name: 'JSON', value: 'json' },
+        ],
+        default: 'none',
+        description: 'How to send the request body',
+      },
+      {
+        displayName: 'JSON Body',
+        name: 'bodyJson',
+        type: 'json',
+        default: '{}',
+        displayOptions: {
+          show: {
+            bodyMode: ['json'],
+          },
+        },
+        description: 'JSON body to send with the request',
+      },
     ],
   };
 
@@ -58,6 +143,10 @@ export class SmartHttp implements INodeType {
     for (let i = 0; i < items.length; i++) {
       const method = this.getNodeParameter('method', i) as IHttpRequestMethods;
       const url = this.getNodeParameter('url', i) as string;
+      const queryParametersUi = this.getNodeParameter('queryParametersUi', i, {}) as any;
+      const headersUi = this.getNodeParameter('headersUi', i, {}) as any;
+      const bodyMode = this.getNodeParameter('bodyMode', i) as string;
+      const bodyJson = this.getNodeParameter('bodyJson', i, undefined) as any;
 
       try {
         // Get OAuth2 Enhanced credentials
@@ -69,14 +158,40 @@ export class SmartHttp implements INodeType {
           Math.max(0, Math.min(10, (credentials.retryAttempts as number) || 3)) : 0;
         const retryDelay = Math.max(100, Math.min(30000, (credentials.retryDelay as number) || 1000));
 
-        const requestOptions = {
+        // Build URL with query parameters
+        let finalUrl = url;
+        const qp = Array.isArray(queryParametersUi?.parameters) ? queryParametersUi.parameters : [];
+        if (qp.length > 0) {
+          const parsed = new URL(finalUrl, finalUrl.startsWith('http') ? undefined : 'http://local');
+          const merged = new URLSearchParams(parsed.search);
+          for (const p of qp) {
+            if (p?.name) merged.set(String(p.name), p?.value ?? '');
+          }
+          parsed.search = merged.toString();
+          finalUrl = parsed.toString();
+        }
+
+        const requestOptions: any = {
           method,
-          url,
+          url: finalUrl,
           headers: {
             'Content-Type': 'application/json',
           },
           json: true,
         };
+
+        // Merge custom headers (after defaults so they can override)
+        const hs = Array.isArray(headersUi?.parameter) ? headersUi.parameter : [];
+        for (const h of hs) {
+          if (h?.name) {
+            requestOptions.headers[String(h.name)] = h?.value ?? '';
+          }
+        }
+
+        // Attach JSON body if selected
+        if (bodyMode === 'json') {
+          requestOptions.body = bodyJson ?? {};
+        }
 
         let lastError: Error | null = null;
         let response = null;
