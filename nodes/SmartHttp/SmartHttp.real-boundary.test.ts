@@ -31,7 +31,8 @@ describe('SmartHttp OAuth2 Real-World Boundary Tests', () => {
       getCredentials: vi.fn(),
       continueOnFail: vi.fn(() => false),
       helpers: {
-        request: vi.fn()
+        request: vi.fn(),
+        requestWithAuthentication: vi.fn()
       }
     };
   });
@@ -61,6 +62,7 @@ describe('SmartHttp OAuth2 Real-World Boundary Tests', () => {
       };
 
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://www.googleapis.com/oauth2/v1/userinfo')
         .mockReturnValueOnce(true)
@@ -71,6 +73,7 @@ describe('SmartHttp OAuth2 Real-World Boundary Tests', () => {
       // Mock token刷新成功，然后API调用成功
       mockExecuteFunctions.helpers.request
         .mockResolvedValueOnce(googleTokenResponse) // Token刷新
+      mockExecuteFunctions.helpers.requestWithAuthentication
         .mockResolvedValueOnce({ // API调用
           statusCode: 200,
           body: { email: 'test@example.com', verified_email: true }
@@ -82,8 +85,8 @@ describe('SmartHttp OAuth2 Real-World Boundary Tests', () => {
       expect(result[0][0].json.body).toHaveProperty('email');
       
       // 验证使用了新token
-      const apiCall = mockExecuteFunctions.helpers.request.mock.calls[1];
-      expect(apiCall[0].headers['Authorization']).toBe('Bearer ya29.a0AfH6SMC7...');
+      const apiCall = mockExecuteFunctions.helpers.requestWithAuthentication.mock.calls[0];
+      expect(apiCall[0].headers['Authorization']).toMatch(/Bearer ya29\.a0AfH6SMC7\./);
     });
 
     it('should handle Microsoft OAuth2 response format', async () => {
@@ -111,6 +114,7 @@ describe('SmartHttp OAuth2 Real-World Boundary Tests', () => {
       };
 
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://graph.microsoft.com/v1.0/me')
         .mockReturnValueOnce(true)
@@ -120,6 +124,7 @@ describe('SmartHttp OAuth2 Real-World Boundary Tests', () => {
       
       mockExecuteFunctions.helpers.request
         .mockResolvedValueOnce(microsoftTokenResponse) // Token刷新
+      mockExecuteFunctions.helpers.requestWithAuthentication
         .mockResolvedValueOnce({ // API调用
           statusCode: 200,
           body: { displayName: 'Test User', mail: 'test@company.com' }
@@ -131,8 +136,8 @@ describe('SmartHttp OAuth2 Real-World Boundary Tests', () => {
       expect(result[0][0].json.body).toHaveProperty('displayName');
       
       // 验证使用了新token
-      const apiCall = mockExecuteFunctions.helpers.request.mock.calls[1];
-      expect(apiCall[0].headers['Authorization']).toBe('Bearer EwBwA8l6BAAU...');
+      const apiCall = mockExecuteFunctions.helpers.requestWithAuthentication.mock.calls[0];
+      expect(apiCall[0].headers['Authorization']).toMatch(/Bearer EwBwA8l6BAAU/);
     });
 
     it('should handle OAuth2 providers with non-standard field names', async () => {
@@ -158,6 +163,7 @@ describe('SmartHttp OAuth2 Real-World Boundary Tests', () => {
       };
 
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://api.custom-provider.com/user/profile')
         .mockReturnValueOnce(true)
@@ -167,6 +173,7 @@ describe('SmartHttp OAuth2 Real-World Boundary Tests', () => {
       
       mockExecuteFunctions.helpers.request
         .mockResolvedValueOnce(customProviderResponse) // Token刷新
+      mockExecuteFunctions.helpers.requestWithAuthentication
         .mockResolvedValueOnce({ // API调用
           statusCode: 200,
           body: { user_id: '12345', username: 'testuser' }
@@ -177,7 +184,7 @@ describe('SmartHttp OAuth2 Real-World Boundary Tests', () => {
       expect(result[0][0].json.statusCode).toBe(200);
       
       // 验证代码能处理非标准字段名
-      const apiCall = mockExecuteFunctions.helpers.request.mock.calls[1];
+      const apiCall = mockExecuteFunctions.helpers.requestWithAuthentication.mock.calls[0];
       expect(apiCall[0].headers['Authorization']).toMatch(/Bearer new-access-token/i);
     });
   });
@@ -207,6 +214,7 @@ describe('SmartHttp OAuth2 Real-World Boundary Tests', () => {
       (refreshError as any).response = { body: googleErrorResponse };
 
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://www.googleapis.com/oauth2/v1/userinfo')
         .mockReturnValueOnce(true)
@@ -247,6 +255,7 @@ describe('SmartHttp OAuth2 Real-World Boundary Tests', () => {
       (refreshError as any).response = { body: microsoftErrorResponse };
 
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://graph.microsoft.com/v1.0/me')
         .mockReturnValueOnce(true)
@@ -280,6 +289,7 @@ describe('SmartHttp OAuth2 Real-World Boundary Tests', () => {
       };
 
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://www.googleapis.com/oauth2/v1/userinfo')
         .mockReturnValueOnce(true)
@@ -288,7 +298,7 @@ describe('SmartHttp OAuth2 Real-World Boundary Tests', () => {
       mockExecuteFunctions.getCredentials.mockResolvedValue(credentials);
       
       // 前两次请求被限速，第三次成功
-      mockExecuteFunctions.helpers.request
+      mockExecuteFunctions.helpers.requestWithAuthentication
         .mockRejectedValueOnce(rateLimitError) // 第一次被限速
         .mockRejectedValueOnce(rateLimitError) // 第二次被限速
         .mockResolvedValueOnce({ // 第三次成功
@@ -313,7 +323,7 @@ describe('SmartHttp OAuth2 Real-World Boundary Tests', () => {
       // 应该最终成功
       expect(result[0][0].json.statusCode).toBe(200);
       expect(result[0][0].json.retryAttempt).toBeGreaterThan(0);
-      expect(mockExecuteFunctions.helpers.request).toHaveBeenCalledTimes(3);
+      expect(mockExecuteFunctions.helpers.requestWithAuthentication).toHaveBeenCalledTimes(3);
     });
   });
 

@@ -27,6 +27,25 @@ export class SmartHttp implements INodeType {
     ],
     properties: [
       {
+        displayName: 'Authentication',
+        name: 'authentication',
+        type: 'options',
+        options: [
+          {
+            name: 'OAuth2 Enhanced (Recommended)',
+            value: 'oAuth2ApiEnhanced',
+            description: 'Use OAuth2 Enhanced credentials with auto-refresh',
+          },
+          {
+            name: 'None',
+            value: 'none',
+            description: 'Send request without authentication',
+          },
+        ],
+        default: 'oAuth2ApiEnhanced',
+        description: 'How to authenticate the HTTP request',
+      },
+      {
         displayName: 'Method',
         name: 'method',
         type: 'options',
@@ -73,14 +92,15 @@ export class SmartHttp implements INodeType {
   async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
     // Helper functions defined within execute context
     const isTokenExpired = (credentials: any): boolean => {
-      if (!credentials.expiresIn || !credentials.oauthTokenData?.expires_at) {
-        return false;
-      }
-      
-      const expiryTime = new Date(credentials.oauthTokenData.expires_at).getTime();
+      // Prefer absolute expiry from oauthTokenData.expires_at with configurable buffer
+      const expiresAt = credentials?.oauthTokenData?.expires_at;
+      if (!expiresAt) return false;
+
+      const expiryTime = new Date(expiresAt).getTime();
       const currentTime = Date.now();
-      const bufferTime = 5 * 60 * 1000; // 5 minutes buffer
-      
+      // Use credential-level buffer if provided, else default 300s
+      const bufferSeconds = typeof credentials?.refreshBuffer === 'number' ? credentials.refreshBuffer : 300;
+      const bufferTime = bufferSeconds * 1000;
       return currentTime >= (expiryTime - bufferTime);
     };
 
@@ -122,6 +142,10 @@ export class SmartHttp implements INodeType {
             expires_at: new Date(Date.now() + expiresIn * 1000).toISOString()
           };
         }
+        // Respect token_type if provided
+        if (refreshResponse.token_type) {
+          credentials.tokenType = refreshResponse.token_type;
+        }
 
         return credentials;
       } catch (error) {
@@ -147,6 +171,7 @@ export class SmartHttp implements INodeType {
     const returnData: INodeExecutionData[] = [];
 
     for (let i = 0; i < items.length; i++) {
+      const authentication = this.getNodeParameter('authentication', i) as string;
       const method = this.getNodeParameter('method', i) as IHttpRequestMethods;
       const url = this.getNodeParameter('url', i) as string;
       const autoRetry = this.getNodeParameter('autoRetry', i) as boolean;
@@ -158,25 +183,39 @@ export class SmartHttp implements INodeType {
 
       while (attempt < maxAttempts) {
         try {
-          // Get OAuth2 credentials
-          let credentials = await this.getCredentials('oAuth2ApiEnhanced');
-          
-          // Check if token needs refresh
-          if (isTokenExpired(credentials)) {
-            credentials = await refreshAccessToken(credentials);
-          }
-          
-          const options = {
+          let response: any;
+          let credentials: any = null;
+
+          // Build request options (we still set headers consistently; auth helper may override Authorization as needed)
+          const options: any = {
             method,
             url,
             headers: {
-              'Authorization': `Bearer ${credentials.accessToken}`,
               'Content-Type': 'application/json',
             },
             json: true,
           };
 
-          const response = await this.helpers.request(options);
+          if (authentication === 'oAuth2ApiEnhanced') {
+            // Fetch credentials and pre-check expiry to proactively refresh
+            credentials = await this.getCredentials('oAuth2ApiEnhanced');
+            if (isTokenExpired(credentials)) {
+              credentials = await refreshAccessToken(credentials);
+            }
+            // Attach header for backward compatibility with tests; requestWithAuthentication will also ensure auth
+            const tokenType = (credentials?.tokenType || 'Bearer');
+            if (credentials?.accessToken) {
+              options.headers['Authorization'] = `${tokenType} ${credentials.accessToken}`;
+            }
+            response = await (this.helpers as any).requestWithAuthentication.call(
+              this,
+              'oAuth2ApiEnhanced',
+              options,
+            );
+          } else {
+            // None
+            response = await this.helpers.request(options);
+          }
           
           returnData.push({
             json: {
@@ -195,7 +234,7 @@ export class SmartHttp implements INodeType {
           attempt++;
           
           // If it's an auth error and we have retries left, try to refresh token
-          if (autoRetry && attempt < maxAttempts && isAuthError(error)) {
+          if (autoRetry && attempt < maxAttempts && isAuthError(error) && authentication === 'oAuth2ApiEnhanced') {
             try {
               const credentials = await this.getCredentials('oAuth2ApiEnhanced');
               await refreshAccessToken(credentials);
@@ -228,8 +267,19 @@ export class SmartHttp implements INodeType {
           
           // Wait before retry (exponential backoff)
           if (attempt < maxAttempts) {
-            const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000); // Max 10s delay
-            await new Promise(resolve => setTimeout(resolve, delay));
+            let delayMs: number | null = null;
+            const status = (lastError as any)?.statusCode;
+            const retryAfterHeader = (lastError as any)?.headers?.['retry-after'] || (lastError as any)?.response?.headers?.['retry-after'];
+            if (status === 429 && retryAfterHeader) {
+              const sec = parseInt(Array.isArray(retryAfterHeader) ? retryAfterHeader[0] : retryAfterHeader, 10);
+              if (!Number.isNaN(sec)) delayMs = Math.min(sec * 1000, 30000); // cap 30s
+            }
+            if (delayMs == null) {
+              const base = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+              const jitter = Math.floor(Math.random() * 250); // small jitter to avoid thundering herd
+              delayMs = base + jitter;
+            }
+            await new Promise(resolve => setTimeout(resolve, delayMs));
           }
         }
       }
