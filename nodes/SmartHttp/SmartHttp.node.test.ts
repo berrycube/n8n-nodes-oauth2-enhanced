@@ -25,7 +25,8 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       getCredentials: vi.fn(),
       continueOnFail: vi.fn(() => false),
       helpers: {
-        request: vi.fn()
+        request: vi.fn(),
+        requestWithAuthentication: vi.fn()
       }
     };
   });
@@ -39,6 +40,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       };
 
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced') // authentication
         .mockReturnValueOnce('GET') // method
         .mockReturnValueOnce('https://api.example.com/data') // url
         .mockReturnValueOnce(false) // autoRetry
@@ -48,7 +50,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
         accessToken: 'test-access-token-123'
       });
 
-      mockExecuteFunctions.helpers.request.mockResolvedValue(mockResponse);
+      mockExecuteFunctions.helpers.requestWithAuthentication.mockResolvedValue(mockResponse);
 
       const result = await smartHttp.execute.call(mockExecuteFunctions);
 
@@ -58,7 +60,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       expect(result[0][0].json.headers).toEqual({ 'content-type': 'application/json' });
 
       // Verify the request was made with correct parameters
-      const requestCall = mockExecuteFunctions.helpers.request.mock.calls[0];
+      const requestCall = mockExecuteFunctions.helpers.requestWithAuthentication.mock.calls[0];
       const options = requestCall[0]; // Now using single options object
       expect(options.url).toBe('https://api.example.com/data');
       expect(options.method).toBe('GET');
@@ -75,6 +77,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       };
 
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('POST') // method
         .mockReturnValueOnce('https://api.example.com/create') // url
         .mockReturnValueOnce(false) // autoRetry
@@ -84,7 +87,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
         accessToken: 'post-token-456'
       });
 
-      mockExecuteFunctions.helpers.request.mockResolvedValue(mockResponse);
+      mockExecuteFunctions.helpers.requestWithAuthentication.mockResolvedValue(mockResponse);
 
       const result = await smartHttp.execute.call(mockExecuteFunctions);
 
@@ -92,7 +95,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       expect(result[0][0].json.body).toEqual({ id: 123, created: true });
 
       // Verify POST method was used
-      const requestCall = mockExecuteFunctions.helpers.request.mock.calls[0];
+      const requestCall = mockExecuteFunctions.helpers.requestWithAuthentication.mock.calls[0];
       const options = requestCall[0];
       expect(options.method).toBe('POST');
       expect(options.headers['Authorization']).toBe('Bearer post-token-456');
@@ -103,6 +106,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
 
       for (const method of methods) {
         mockExecuteFunctions.getNodeParameter
+          .mockReturnValueOnce('oAuth2ApiEnhanced')
           .mockReturnValueOnce(method)
           .mockReturnValueOnce(`https://api.example.com/${method.toLowerCase()}`)
           .mockReturnValueOnce(false)
@@ -112,7 +116,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
           accessToken: `${method.toLowerCase()}-token`
         });
 
-        mockExecuteFunctions.helpers.request.mockResolvedValue({
+        mockExecuteFunctions.helpers.requestWithAuthentication.mockResolvedValue({
           statusCode: 200,
           body: `${method} response`
         });
@@ -121,7 +125,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
 
         expect(result[0][0].json.body).toBe(`${method} response`);
 
-        const requestCall = mockExecuteFunctions.helpers.request.mock.calls[0];
+        const requestCall = mockExecuteFunctions.helpers.requestWithAuthentication.mock.calls[0];
         const options = requestCall[0];
         expect(options.method).toBe(method);
         expect(options.headers['Authorization']).toBe(`Bearer ${method.toLowerCase()}-token`);
@@ -140,6 +144,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       };
 
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://secure-api.example.com/protected')
         .mockReturnValueOnce(false)
@@ -147,7 +152,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
 
       mockExecuteFunctions.getCredentials.mockResolvedValueOnce(testCredentials);
 
-      mockExecuteFunctions.helpers.request.mockResolvedValue({
+      mockExecuteFunctions.helpers.requestWithAuthentication.mockResolvedValue({
         statusCode: 200,
         body: { protected: 'data' }
       });
@@ -158,13 +163,14 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       expect(mockExecuteFunctions.getCredentials).toHaveBeenCalledWith('oAuth2ApiEnhanced');
 
       // Verify Authorization header contains the access token
-      const requestCall = mockExecuteFunctions.helpers.request.mock.calls[0];
+      const requestCall = mockExecuteFunctions.helpers.requestWithAuthentication.mock.calls[0];
       const options = requestCall[0];
       expect(options.headers['Authorization']).toBe('Bearer advanced-oauth2-token');
     });
 
     it('should handle missing access token gracefully', async () => {
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://api.example.com/data')
         .mockReturnValueOnce(false)
@@ -177,7 +183,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
         // Missing accessToken
       });
 
-      mockExecuteFunctions.helpers.request.mockResolvedValue({
+      mockExecuteFunctions.helpers.requestWithAuthentication.mockResolvedValue({
         statusCode: 200,
         body: 'success'
       });
@@ -187,7 +193,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       // Should still make request but with "Bearer undefined"
       expect(result[0][0].json.statusCode).toBe(200);
 
-      const requestCall = mockExecuteFunctions.helpers.request.mock.calls[0];
+      const requestCall = mockExecuteFunctions.helpers.requestWithAuthentication.mock.calls[0];
       const options = requestCall[0];
       expect(options.headers['Authorization']).toBe('Bearer undefined');
     });
@@ -196,6 +202,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
   describe('Error Handling', () => {
     it('should handle HTTP request errors when continueOnFail is false', async () => {
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://api.example.com/error')
         .mockReturnValueOnce(false)
@@ -206,7 +213,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       });
 
       const networkError = new Error('Connection failed');
-      mockExecuteFunctions.helpers.request.mockRejectedValue(networkError);
+      mockExecuteFunctions.helpers.requestWithAuthentication.mockRejectedValue(networkError);
 
       // continueOnFail is false by default
       await expect(smartHttp.execute.call(mockExecuteFunctions)).rejects.toThrow('Connection failed');
@@ -216,6 +223,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       mockExecuteFunctions.continueOnFail.mockReturnValue(true);
 
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://api.example.com/error')
         .mockReturnValueOnce(false)
@@ -226,7 +234,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       });
 
       const networkError = new Error('Network timeout');
-      mockExecuteFunctions.helpers.request.mockRejectedValue(networkError);
+      mockExecuteFunctions.helpers.requestWithAuthentication.mockRejectedValue(networkError);
 
       const result = await smartHttp.execute.call(mockExecuteFunctions);
 
@@ -237,6 +245,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
 
     it('should handle credential retrieval errors', async () => {
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://api.example.com/data')
         .mockReturnValueOnce(false)
@@ -251,6 +260,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       mockExecuteFunctions.continueOnFail.mockReturnValue(true);
 
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://api.example.com/error')
         .mockReturnValueOnce(false)
@@ -261,7 +271,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       });
 
       // Simulate throwing a non-Error object
-      mockExecuteFunctions.helpers.request.mockRejectedValue('String error');
+      mockExecuteFunctions.helpers.requestWithAuthentication.mockRejectedValue('String error');
 
       const result = await smartHttp.execute.call(mockExecuteFunctions);
 
@@ -272,6 +282,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
   describe('Response Processing', () => {
     it('should handle response without statusCode', async () => {
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://api.example.com/simple')
         .mockReturnValueOnce(false)
@@ -283,7 +294,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
 
       // Response without statusCode (common in some HTTP libs)
       const simpleResponse = { data: 'direct response' };
-      mockExecuteFunctions.helpers.request.mockResolvedValue(simpleResponse);
+      mockExecuteFunctions.helpers.requestWithAuthentication.mockResolvedValue(simpleResponse);
 
       const result = await smartHttp.execute.call(mockExecuteFunctions);
 
@@ -294,6 +305,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
 
     it('should handle response with body and headers', async () => {
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://api.example.com/full')
         .mockReturnValueOnce(false)
@@ -311,7 +323,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
           'content-type': 'application/json'
         }
       };
-      mockExecuteFunctions.helpers.request.mockResolvedValue(fullResponse);
+      mockExecuteFunctions.helpers.requestWithAuthentication.mockResolvedValue(fullResponse);
 
       const result = await smartHttp.execute.call(mockExecuteFunctions);
 
@@ -331,10 +343,12 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       ]);
 
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://api.example.com/1')
         .mockReturnValueOnce(false)
         .mockReturnValueOnce(0) // First item
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://api.example.com/2')
         .mockReturnValueOnce(false)
@@ -344,7 +358,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
         .mockResolvedValueOnce({ accessToken: 'token1' })
         .mockResolvedValueOnce({ accessToken: 'token2' });
 
-      mockExecuteFunctions.helpers.request
+      mockExecuteFunctions.helpers.requestWithAuthentication
         .mockResolvedValueOnce({ statusCode: 200, body: 'response1' })
         .mockResolvedValueOnce({ statusCode: 200, body: 'response2' });
 
@@ -353,7 +367,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       expect(result[0]).toHaveLength(2);
       expect(result[0][0].json.body).toBe('response1');
       expect(result[0][1].json.body).toBe('response2');
-      expect(mockExecuteFunctions.helpers.request).toHaveBeenCalledTimes(2);
+      expect(mockExecuteFunctions.helpers.requestWithAuthentication).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -379,6 +393,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       };
 
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://api.example.com/data')
         .mockReturnValueOnce(true) // autoRetry
@@ -389,6 +404,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       // Mock token refresh request (first call) and actual API call (second call)
       mockExecuteFunctions.helpers.request
         .mockResolvedValueOnce(newTokenResponse) // Token refresh call
+      mockExecuteFunctions.helpers.requestWithAuthentication
         .mockResolvedValueOnce({ statusCode: 200, body: 'success', headers: {} }); // Actual API call
 
       const result = await smartHttp.execute.call(mockExecuteFunctions);
@@ -406,7 +422,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       expect(refreshCall[0].form.refresh_token).toBe('valid-refresh-token');
 
       // Verify actual request used new token
-      const apiCall = mockExecuteFunctions.helpers.request.mock.calls[1];
+      const apiCall = mockExecuteFunctions.helpers.requestWithAuthentication.mock.calls[0];
       expect(apiCall[0].headers['Authorization']).toBe('Bearer new-fresh-token');
     });
 
@@ -428,6 +444,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       (authError as any).statusCode = 401;
 
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://api.example.com/protected')
         .mockReturnValueOnce(true) // autoRetry
@@ -436,9 +453,11 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       mockExecuteFunctions.getCredentials.mockResolvedValue(credentials);
 
       // Mock: First API call fails with 401, then token refresh, then success
-      mockExecuteFunctions.helpers.request
+      mockExecuteFunctions.helpers.requestWithAuthentication
         .mockRejectedValueOnce(authError) // First API call fails
+      mockExecuteFunctions.helpers.request
         .mockResolvedValueOnce(newTokenResponse) // Token refresh succeeds
+      mockExecuteFunctions.helpers.requestWithAuthentication
         .mockResolvedValueOnce({ statusCode: 200, body: 'protected data' }); // Retry succeeds
 
       const result = await smartHttp.execute.call(mockExecuteFunctions);
@@ -448,7 +467,9 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       expect(result[0][0].json.retryAttempt).toBe(1); // One retry happened
 
       // Verify 3 calls: failed API + refresh + successful API
-      expect(mockExecuteFunctions.helpers.request).toHaveBeenCalledTimes(3);
+      // 1st failed API + refresh + retry API
+      expect(mockExecuteFunctions.helpers.requestWithAuthentication).toHaveBeenCalledTimes(2);
+      expect(mockExecuteFunctions.helpers.request).toHaveBeenCalledTimes(1);
     });
 
     it('should implement exponential backoff for retries', async () => {
@@ -464,6 +485,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       (networkError as any).statusCode = 500;
 
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://api.example.com/flaky')
         .mockReturnValueOnce(true) // autoRetry
@@ -472,7 +494,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       mockExecuteFunctions.getCredentials.mockResolvedValue(credentials);
 
       // Mock: All calls fail with network error (non-auth error)
-      mockExecuteFunctions.helpers.request
+      mockExecuteFunctions.helpers.requestWithAuthentication
         .mockRejectedValueOnce(networkError)
         .mockRejectedValueOnce(networkError)
         .mockRejectedValueOnce(networkError);
@@ -494,7 +516,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       // Should fail after all retries
       expect(result[0][0].json.error).toBe('Network timeout');
       expect(result[0][0].json.attempts).toBe(3); // 1 initial + 2 retries
-      expect(mockExecuteFunctions.helpers.request).toHaveBeenCalledTimes(3);
+      expect(mockExecuteFunctions.helpers.requestWithAuthentication).toHaveBeenCalledTimes(3);
     });
 
     it('should fail when refresh token is missing', async () => {
@@ -508,6 +530,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       };
 
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://api.example.com/data')
         .mockReturnValueOnce(false) // Disable autoRetry to avoid delays
@@ -536,6 +559,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       (refreshError as any).statusCode = 400;
 
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://api.example.com/data')
         .mockReturnValueOnce(false) // Disable autoRetry for fast execution
@@ -558,13 +582,14 @@ describe('SmartHttp Node - Business Logic Tests', () => {
       };
 
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('GET')
         .mockReturnValueOnce('https://api.example.com/data')
         .mockReturnValueOnce(false) // autoRetry disabled
         .mockReturnValueOnce(0);
 
       mockExecuteFunctions.getCredentials.mockResolvedValue(validCredentials);
-      mockExecuteFunctions.helpers.request.mockResolvedValue({ 
+      mockExecuteFunctions.helpers.requestWithAuthentication.mockResolvedValue({ 
         statusCode: 200, 
         body: 'success' 
       });
@@ -573,9 +598,9 @@ describe('SmartHttp Node - Business Logic Tests', () => {
 
       expect(result[0][0].json.statusCode).toBe(200);
       // Should only call API once (no token refresh)
-      expect(mockExecuteFunctions.helpers.request).toHaveBeenCalledTimes(1);
+      expect(mockExecuteFunctions.helpers.requestWithAuthentication).toHaveBeenCalledTimes(1);
       
-      const apiCall = mockExecuteFunctions.helpers.request.mock.calls[0];
+      const apiCall = mockExecuteFunctions.helpers.requestWithAuthentication.mock.calls[0];
       expect(apiCall[0].headers['Authorization']).toBe('Bearer valid-token');
     });
   });
@@ -583,6 +608,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
   describe('Request Configuration', () => {
     it('should configure request with correct options structure', async () => {
       mockExecuteFunctions.getNodeParameter
+        .mockReturnValueOnce('oAuth2ApiEnhanced')
         .mockReturnValueOnce('PUT')
         .mockReturnValueOnce('https://api.example.com/update')
         .mockReturnValueOnce(false)
@@ -592,13 +618,13 @@ describe('SmartHttp Node - Business Logic Tests', () => {
         accessToken: 'config-test-token'
       });
 
-      mockExecuteFunctions.helpers.request.mockResolvedValue({
+      mockExecuteFunctions.helpers.requestWithAuthentication.mockResolvedValue({
         statusCode: 204
       });
 
       await smartHttp.execute.call(mockExecuteFunctions);
 
-      const requestCall = mockExecuteFunctions.helpers.request.mock.calls[0];
+      const requestCall = mockExecuteFunctions.helpers.requestWithAuthentication.mock.calls[0];
       const options = requestCall[0];
 
       expect(options.method).toBe('PUT');
@@ -613,6 +639,7 @@ describe('SmartHttp Node - Business Logic Tests', () => {
 
       for (const method of methods) {
         mockExecuteFunctions.getNodeParameter
+          .mockReturnValueOnce('oAuth2ApiEnhanced')
           .mockReturnValueOnce(method)
           .mockReturnValueOnce('https://api.example.com/endpoint')
           .mockReturnValueOnce(false)
@@ -622,11 +649,11 @@ describe('SmartHttp Node - Business Logic Tests', () => {
           accessToken: 'consistent-token'
         });
 
-        mockExecuteFunctions.helpers.request.mockResolvedValue({ statusCode: 200 });
+        mockExecuteFunctions.helpers.requestWithAuthentication.mockResolvedValue({ statusCode: 200 });
 
         await smartHttp.execute.call(mockExecuteFunctions);
 
-        const requestCall = mockExecuteFunctions.helpers.request.mock.calls[0];
+        const requestCall = mockExecuteFunctions.helpers.requestWithAuthentication.mock.calls[0];
         const options = requestCall[0];
 
         // Verify consistent structure
