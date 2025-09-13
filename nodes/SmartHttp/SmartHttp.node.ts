@@ -27,28 +27,17 @@ export class SmartHttp implements INodeType {
     ],
     properties: [
       {
-<<<<<<< HEAD
         displayName: 'Authentication',
         name: 'authentication',
         type: 'options',
         options: [
-          {
-            name: 'OAuth2 Enhanced (Recommended)',
-            value: 'oAuth2ApiEnhanced',
-            description: 'Use OAuth2 Enhanced credentials with auto-refresh',
-          },
-          {
-            name: 'None',
-            value: 'none',
-            description: 'Send request without authentication',
-          },
+          { name: 'OAuth2 Enhanced (Recommended)', value: 'oAuth2ApiEnhanced' },
+          { name: 'None', value: 'none' },
         ],
         default: 'oAuth2ApiEnhanced',
         description: 'How to authenticate the HTTP request',
       },
       {
-=======
->>>>>>> 1649803 (✨ Enhancement: Optimize OAuth2Enhanced architecture and implement smart retry mechanism (#1))
         displayName: 'Method',
         name: 'method',
         type: 'options',
@@ -70,13 +59,137 @@ export class SmartHttp implements INodeType {
         required: true,
         description: 'The URL to make the request to',
       },
-<<<<<<< HEAD
+      {
+        displayName: 'Query Parameters',
+        name: 'queryParametersUi',
+        type: 'fixedCollection',
+        placeholder: 'Add Parameter',
+        default: {},
+        options: [
+          {
+            displayName: 'Parameters',
+            name: 'parameters',
+            type: 'collection',
+            placeholder: 'Add Parameter',
+            default: {},
+            options: [
+              { displayName: 'Name', name: 'name', type: 'string', default: '' },
+              { displayName: 'Value', name: 'value', type: 'string', default: '' },
+            ],
+          },
+        ],
+        description: 'Query string parameters to append to the URL',
+      },
+      {
+        displayName: 'Headers',
+        name: 'headersUi',
+        type: 'fixedCollection',
+        placeholder: 'Add Header',
+        default: {},
+        options: [
+          {
+            displayName: 'Header',
+            name: 'parameter',
+            type: 'collection',
+            placeholder: 'Add Header',
+            default: {},
+            options: [
+              { displayName: 'Name', name: 'name', type: 'string', default: '' },
+              { displayName: 'Value', name: 'value', type: 'string', default: '' },
+            ],
+          },
+        ],
+        description: 'Additional request headers',
+      },
+      {
+        displayName: 'Body Mode',
+        name: 'bodyMode',
+        type: 'options',
+        options: [
+          { name: 'None', value: 'none' },
+          { name: 'JSON', value: 'json' },
+          { name: 'Raw', value: 'raw' },
+          { name: 'Form URL Encoded', value: 'formUrlEncoded' },
+          { name: 'Multipart Form Data', value: 'multipart' },
+        ],
+        default: 'none',
+        description: 'How to send the request body',
+      },
+      {
+        displayName: 'JSON Body',
+        name: 'bodyJson',
+        type: 'json',
+        default: '{}',
+        displayOptions: { show: { bodyMode: ['json'] } },
+        description: 'JSON body to send with the request',
+      },
+      {
+        displayName: 'Raw Content-Type',
+        name: 'rawContentType',
+        type: 'string',
+        default: 'text/plain',
+        displayOptions: { show: { bodyMode: ['raw'] } },
+        description: 'Content-Type header to use with raw body',
+      },
+      {
+        displayName: 'Raw Body',
+        name: 'rawBody',
+        type: 'string',
+        typeOptions: { rows: 4 },
+        default: '',
+        displayOptions: { show: { bodyMode: ['raw'] } },
+        description: 'Raw body content to send',
+      },
+      {
+        displayName: 'Form Fields',
+        name: 'formFieldsUi',
+        type: 'fixedCollection',
+        placeholder: 'Add Field',
+        default: {},
+        options: [
+          {
+            displayName: 'Parameters',
+            name: 'parameters',
+            type: 'collection',
+            placeholder: 'Add Field',
+            default: {},
+            options: [
+              { displayName: 'Name', name: 'name', type: 'string', default: '' },
+              { displayName: 'Value', name: 'value', type: 'string', default: '' },
+            ],
+          },
+        ],
+        displayOptions: { show: { bodyMode: ['formUrlEncoded'] } },
+        description: 'x-www-form-urlencoded fields (name=value)',
+      },
+      {
+        displayName: 'Multipart Fields',
+        name: 'multipartFieldsUi',
+        type: 'fixedCollection',
+        placeholder: 'Add Part',
+        default: {},
+        options: [
+          {
+            displayName: 'Part',
+            name: 'parameter',
+            type: 'collection',
+            placeholder: 'Add Part',
+            default: {},
+            options: [
+              { displayName: 'Name', name: 'name', type: 'string', default: '' },
+              { displayName: 'Value', name: 'value', type: 'string', default: '' },
+            ],
+          },
+        ],
+        displayOptions: { show: { bodyMode: ['multipart'] } },
+        description: 'Multipart form fields (text parts only)',
+      },
       {
         displayName: 'Auto Retry',
         name: 'autoRetry',
         type: 'boolean',
         default: true,
-        description: 'Automatically retry on authentication failures',
+        description: 'Automatically retry on transient failures',
       },
       {
         displayName: 'Max Retries',
@@ -84,106 +197,27 @@ export class SmartHttp implements INodeType {
         type: 'number',
         default: 3,
         description: 'Maximum number of retries for failed requests',
-        displayOptions: {
-          show: {
-            autoRetry: [true],
-          },
-        },
+        displayOptions: { show: { autoRetry: [true] } },
       },
-=======
->>>>>>> 1649803 (✨ Enhancement: Optimize OAuth2Enhanced architecture and implement smart retry mechanism (#1))
     ],
   };
 
   async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
-<<<<<<< HEAD
-    // Helper functions defined within execute context
-    const isTokenExpired = (credentials: any): boolean => {
-      // Prefer absolute expiry from oauthTokenData.expires_at with configurable buffer
-      const expiresAt = credentials?.oauthTokenData?.expires_at;
-      if (!expiresAt) return false;
-
-      const expiryTime = new Date(expiresAt).getTime();
-      const currentTime = Date.now();
-      // Use credential-level buffer if provided, else default 300s
-      const bufferSeconds = typeof credentials?.refreshBuffer === 'number' ? credentials.refreshBuffer : 300;
-      const bufferTime = bufferSeconds * 1000;
-      return currentTime >= (expiryTime - bufferTime);
-    };
-
-    const isAuthError = (error: any): boolean => {
-      return error.statusCode === 401 || 
-             error.statusCode === 403 || 
-             (error.message && error.message.toLowerCase().includes('unauthorized'));
-    };
-
-    const refreshAccessToken = async (credentials: any): Promise<any> => {
-      if (!credentials.refreshToken) {
-        throw new Error('No refresh token available for token refresh');
-      }
-
-      try {
-        const refreshResponse = await this.helpers.request({
-          method: 'POST',
-          url: credentials.accessTokenUrl || `${credentials.authUrl}/token`,
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          form: {
-            grant_type: 'refresh_token',
-            refresh_token: credentials.refreshToken,
-            client_id: credentials.clientId,
-            client_secret: credentials.clientSecret,
-          },
-          json: true,
-        });
-
-        // Update credentials with new token - handle both standard and non-standard field names
-        credentials.accessToken = refreshResponse.access_token || refreshResponse.accessToken;
-        if (refreshResponse.refresh_token || refreshResponse.refreshToken) {
-          credentials.refreshToken = refreshResponse.refresh_token || refreshResponse.refreshToken;
-        }
-        const expiresIn = refreshResponse.expires_in || refreshResponse.expiresIn;
-        if (expiresIn) {
-          credentials.oauthTokenData = {
-            expires_at: new Date(Date.now() + expiresIn * 1000).toISOString()
-          };
-        }
-        // Respect token_type if provided
-        if (refreshResponse.token_type) {
-          credentials.tokenType = refreshResponse.token_type;
-        }
-
-        return credentials;
-      } catch (error) {
-        // Extract detailed error information from OAuth2 providers
-        let errorMessage = 'Unknown error';
-        
-        if (error instanceof Error) {
-          errorMessage = error.message;
-          
-          // Try to extract OAuth2 specific error details
-          const errorResponse = (error as any).response?.body;
-          if (errorResponse && typeof errorResponse === 'object') {
-            if (errorResponse.error) {
-              errorMessage = `${errorResponse.error}: ${errorResponse.error_description || 'No description'}`;
-            }
-          }
-        }
-        
-        throw new Error(`Token refresh failed: ${errorMessage}`);
-      }
-    };
-=======
->>>>>>> 1649803 (✨ Enhancement: Optimize OAuth2Enhanced architecture and implement smart retry mechanism (#1))
     const items = this.getInputData();
     const returnData: INodeExecutionData[] = [];
 
     for (let i = 0; i < items.length; i++) {
-<<<<<<< HEAD
       const authentication = this.getNodeParameter('authentication', i) as string;
       const method = this.getNodeParameter('method', i) as IHttpRequestMethods;
       const url = this.getNodeParameter('url', i) as string;
+      const queryParametersUi = this.getNodeParameter('queryParametersUi', i, {}) as any;
+      const headersUi = this.getNodeParameter('headersUi', i, {}) as any;
+      const bodyMode = this.getNodeParameter('bodyMode', i) as string;
+      const bodyJson = this.getNodeParameter('bodyJson', i, undefined) as any;
+      const rawContentType = this.getNodeParameter('rawContentType', i, 'text/plain') as string;
+      const rawBody = this.getNodeParameter('rawBody', i, '') as string;
+      const formFieldsUi = this.getNodeParameter('formFieldsUi', i, {}) as any;
+      const multipartFieldsUi = this.getNodeParameter('multipartFieldsUi', i, {}) as any;
       const autoRetry = this.getNodeParameter('autoRetry', i) as boolean;
       const maxRetries = this.getNodeParameter('maxRetries', i) as number;
 
@@ -193,131 +227,111 @@ export class SmartHttp implements INodeType {
 
       while (attempt < maxAttempts) {
         try {
-          let response: any;
-          let credentials: any = null;
+          // Build URL with query params
+          let finalUrl = url;
+          const qp = Array.isArray(queryParametersUi?.parameters) ? queryParametersUi.parameters : [];
+          if (qp.length > 0) {
+            const parsed = new URL(finalUrl, finalUrl.startsWith('http') ? undefined : 'http://local');
+            const merged = new URLSearchParams(parsed.search);
+            for (const p of qp) {
+              if (p?.name) merged.set(String(p.name), p?.value ?? '');
+            }
+            parsed.search = merged.toString();
+            finalUrl = parsed.toString();
+          }
 
-          // Build request options (we still set headers consistently; auth helper may override Authorization as needed)
+          // Base request options
           const options: any = {
             method,
-            url,
+            url: finalUrl,
             headers: {
               'Content-Type': 'application/json',
             },
-            json: true,
+            json: true, // default for JSON mode
           };
 
+          // Merge custom headers
+          const hs = Array.isArray(headersUi?.parameter) ? headersUi.parameter : [];
+          for (const h of hs) {
+            if (h?.name) options.headers[String(h.name)] = h?.value ?? '';
+          }
+
+          // Attach body according to mode
+          if (bodyMode === 'json') {
+            options.body = bodyJson ?? {};
+            options.json = true;
+          } else if (bodyMode === 'raw') {
+            options.headers['Content-Type'] = rawContentType || 'text/plain';
+            options.body = rawBody || '';
+            delete options.json;
+          } else if (bodyMode === 'formUrlEncoded') {
+            const fields = Array.isArray(formFieldsUi?.parameters) ? formFieldsUi.parameters : [];
+            const formObj: Record<string, string> = {};
+            for (const f of fields) {
+              if (f?.name) formObj[String(f.name)] = f?.value ?? '';
+            }
+            options.form = formObj;
+            delete options.json;
+          } else if (bodyMode === 'multipart') {
+            const parts = Array.isArray(multipartFieldsUi?.parameter) ? multipartFieldsUi.parameter : [];
+            const formData: Record<string, any> = {};
+            for (const p of parts) {
+              if (p?.name) formData[String(p.name)] = p?.value ?? '';
+            }
+            options.formData = formData;
+            delete options.json;
+          }
+
+          let response: any;
           if (authentication === 'oAuth2ApiEnhanced') {
-            // Fetch credentials and pre-check expiry to proactively refresh
-            credentials = await this.getCredentials('oAuth2ApiEnhanced');
-            if (isTokenExpired(credentials)) {
-              credentials = await refreshAccessToken(credentials);
-            }
-            // Attach header for backward compatibility with tests; requestWithAuthentication will also ensure auth
-            const tokenType = (credentials?.tokenType || 'Bearer');
-            if (credentials?.accessToken) {
-              options.headers['Authorization'] = `${tokenType} ${credentials.accessToken}`;
-            }
-            response = await (this.helpers as any).requestWithAuthentication.call(
-              this,
-              'oAuth2ApiEnhanced',
-              options,
-            );
+            response = await (this.helpers as any).requestWithAuthentication.call(this, 'oAuth2ApiEnhanced', options);
           } else {
-            // None
             response = await this.helpers.request(options);
           }
-          
+
           returnData.push({
             json: {
-              statusCode: response.statusCode || 200,
-              body: response.body || response,
-              headers: response.headers || {},
+              statusCode: response?.statusCode || 200,
+              body: response?.body || response,
+              headers: response?.headers || {},
               retryAttempt: attempt,
             },
           });
-          
-          // Success - break out of retry loop
-          break;
-          
+          break; // success
         } catch (error) {
           lastError = error;
           attempt++;
-          
-          // If it's an auth error and we have retries left, try to refresh token
-          if (autoRetry && attempt < maxAttempts && isAuthError(error) && authentication === 'oAuth2ApiEnhanced') {
-            try {
-              const credentials = await this.getCredentials('oAuth2ApiEnhanced');
-              await refreshAccessToken(credentials);
-              continue; // Retry with refreshed token
-            } catch (refreshError) {
-              // If refresh fails, continue to next attempt or fail
-              lastError = refreshError;
-            }
-          }
-          
-          // If no more retries, handle the error
+
           if (attempt >= maxAttempts) {
             if (this.continueOnFail()) {
-              returnData.push({
-                json: {
-                  error: lastError instanceof Error ? lastError.message : 'Unknown error',
-                  item: i,
-                  attempts: attempt,
-                },
-              });
+              returnData.push({ json: { error: lastError instanceof Error ? lastError.message : 'Unknown error', item: i, attempts: attempt } });
               break;
             } else {
-              throw new NodeOperationError(
-                this.getNode(),
-                lastError instanceof Error ? lastError : new Error('Unknown error'),
-                { itemIndex: i }
-              );
+              throw new NodeOperationError(this.getNode(), lastError instanceof Error ? lastError : new Error('Unknown error'), { itemIndex: i });
             }
           }
-          
-          // Wait before retry (exponential backoff)
-          if (attempt < maxAttempts) {
-            let delayMs: number | null = null;
-            const status = (lastError as any)?.statusCode;
-            const retryAfterHeader = (lastError as any)?.headers?.['retry-after'] || (lastError as any)?.response?.headers?.['retry-after'];
-            if (status === 429 && retryAfterHeader) {
-              const sec = parseInt(Array.isArray(retryAfterHeader) ? retryAfterHeader[0] : retryAfterHeader, 10);
-              if (!Number.isNaN(sec)) delayMs = Math.min(sec * 1000, 30000); // cap 30s
-            }
-            if (delayMs == null) {
-              const base = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
-              const jitter = Math.floor(Math.random() * 250); // small jitter to avoid thundering herd
-              delayMs = base + jitter;
-            }
-            await new Promise(resolve => setTimeout(resolve, delayMs));
+
+          // Retry delay: prefer Retry-After; else exponential backoff + jitter
+          let delayMs: number | null = null;
+          const status = (lastError as any)?.statusCode || (lastError as any)?.response?.status;
+          const retryAfterHeader = (lastError as any)?.headers?.['retry-after'] || (lastError as any)?.response?.headers?.['retry-after'];
+          if (status === 429 && retryAfterHeader) {
+            const sec = parseInt(Array.isArray(retryAfterHeader) ? retryAfterHeader[0] : retryAfterHeader, 10);
+            if (!Number.isNaN(sec)) delayMs = Math.min(sec * 1000, 30000);
           }
-=======
-      const method = this.getNodeParameter('method', i) as IHttpRequestMethods;
-      const url = this.getNodeParameter('url', i) as string;
+          if (delayMs == null) {
+            const base = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+            const jitter = Math.floor(Math.random() * 250);
+            delayMs = base + jitter;
+          }
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+      }
+    }
 
-      try {
-        // Get OAuth2 Enhanced credentials
-        const credentials = await this.getCredentials('oAuth2ApiEnhanced');
-        const autoRefresh = credentials.autoRefresh as boolean;
-        
-        // Parameter validation with safe boundaries
-        const retryAttempts = autoRefresh ? 
-          Math.max(0, Math.min(10, (credentials.retryAttempts as number) || 3)) : 0;
-        const retryDelay = Math.max(100, Math.min(30000, (credentials.retryDelay as number) || 1000));
-
-        const requestOptions = {
-          method,
-          url,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          json: true,
-        };
-
-        let lastError: Error | null = null;
-        let response = null;
-        const startTime = Date.now();
-        const maxExecutionTime = 300000; // 5 minutes maximum execution time
+    return [returnData];
+  }
+}
 
         // Improved authentication error detection
         const isAuthenticationError = (error: any): boolean => {
