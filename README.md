@@ -2,6 +2,12 @@
 
 增强的OAuth2凭证 + 智能HTTP，适用于n8n
 
+## 分支与协作
+
+- 默认分支：`master`
+- 子模块协作指南：参见 n8n-suite 文档
+  - https://github.com/berrycube/n8n-suite/blob/main/docs/contributing/SUBMODULES.md
+
 ## 🚀 核心功能
 
 - **自动OAuth2 token刷新**: 智能检测token过期（5分钟buffer），自动刷新避免API调用失败
